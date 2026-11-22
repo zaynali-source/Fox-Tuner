@@ -1,27 +1,20 @@
 #!/system/bin/sh
 # Systemless bind-mount of the bundled PowerHAL / perf / thermal configs.
+# Runs before `on boot`, which is when init starts mi_thermald, so it reads our files from its first load.
 MODDIR=${0%/*}
 DATA=/data/adb/profiles_tuner
-BL=$DATA/bundle.log
 mkdir -p "$DATA"
-echo "--- $(date) ---" > "$BL"
 
-# Boot-loop guard: if previous boot never reached boot_completed, skip the bundle once.
+# Boot-loop guard: if the previous boot never reached boot_completed, skip the overlay once.
 if [ -f "$DATA/boot_guard" ]; then
-  echo "previous boot did not complete -> bundle skipped" >> "$BL"
+  echo "previous boot did not complete -> overlay skipped $(date)" > "$DATA/bundle.log"
+  echo "skipped (boot guard)" > "$DATA/bundle.stat"
   rm -f "$DATA/boot_guard"
   exit 0
 fi
 touch "$DATA/boot_guard"
 
-grep -q '^opt.bundle=0' "$DATA/profiles.conf" 2>/dev/null && { echo "bundle disabled in app" >> "$BL"; exit 0; }
-
-cd "$MODDIR/bundle" || exit 0
-for f in $(find . -type f); do
-  rel=${f#./}
-  tgt=/$rel
-  src=$MODDIR/bundle/$rel
-  if [ ! -f "$tgt" ]; then echo "skip (target missing): $tgt" >> "$BL"; continue; fi
-  chcon --reference="$tgt" "$src" 2>>"$BL"
-  if mount --bind "$src" "$tgt" 2>>"$BL"; then echo "ok $tgt" >> "$BL"; else echo "FAIL $tgt" >> "$BL"; fi
-done
+if grep -q '^opt.bundle=0' "$DATA/profiles.conf" 2>/dev/null; then
+  echo "overlay disabled in app" > "$DATA/bundle.stat"; exit 0
+fi
+sh "$MODDIR/bin/bundle.sh" mount
