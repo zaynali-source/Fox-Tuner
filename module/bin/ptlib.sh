@@ -242,38 +242,27 @@ apply_cap() { # policy cap(kHz)
   wr "$d/scaling_max_freq" "$cap"
 }
 
-apply_prio() { # policy prio(0-3) threshold
-  # 1) core_ctl: how many cores of the cluster may stay online (lower priority = cores can be parked)
-  d=$CPUFREQ/$1; prio=$2; thr=$3
+apply_prio() { # policy prio(0-3)
+  d=$CPUFREQ/$1; prio=$2
   set -- $(rd "$d/related_cpus"); first=$1; n=$#
   cc=$SR/sys/devices/system/cpu/cpu$first/core_ctl
-  if [ -d "$cc" ]; then
-    case "$prio" in
-      3) mn=$n ;;
-      2) mn=$(( (n * 3 + 3) / 4 )) ;;
-      1) mn=$(( (n + 1) / 2 )) ;;
-      *) mn=0 ;;
-    esac
-    [ "$first" = 0 ] && [ "$mn" -lt 1 ] && mn=1
-    wr "$cc/max_cpus" "$n"
-    wr "$cc/min_cpus" "$mn"
-  else log "core_ctl missing for cpu$first"; fi
-  # 2) Ulquiorra: "the lower the priority, the slower the core changes its frequency"
-  #    -> extra delay on the WALT up/down rate limits
-  w=$d/walt
-  [ -d "$w" ] || { log "walt tunables missing for $d"; return 1; }
-  case "$prio" in 3) x=0 ;; 2) x=1500 ;; 1) x=3000 ;; *) x=6000 ;; esac
-  wr "$w/up_rate_limit_us" $(( thr * 200 + x ))
-  wr "$w/down_rate_limit_us" $(( 2000 + thr * 300 + x ))
+  [ -d "$cc" ] || { log "core_ctl missing for cpu$first"; return 1; }
+  case "$prio" in
+    3) mn=$n ;;
+    2) mn=$(( (n * 3 + 3) / 4 )) ;;
+    1) mn=$(( (n + 1) / 2 )) ;;
+    *) mn=0 ;;
+  esac
+  [ "$first" = 0 ] && [ "$mn" -lt 1 ] && mn=1
+  wr "$cc/max_cpus" "$n"
+  wr "$cc/min_cpus" "$mn"
 }
 
-apply_walt() { # policy role threshold rates(1 = also write rate limits)
+apply_walt() { # policy role threshold   (rate limits + auto load shift)
   w=$CPUFREQ/$1/walt; t=$3
   [ -d "$w" ] || { log "walt tunables missing for $1"; return 1; }
-  if [ "$4" = 1 ]; then
-    wr "$w/up_rate_limit_us" $((t * 200))
-    wr "$w/down_rate_limit_us" $((2000 + t * 300))
-  fi
+  wr "$w/up_rate_limit_us" $((t * 200))
+  wr "$w/down_rate_limit_us" $((2000 + t * 300))
   wr "$w/target_load_shift" $((4 + t / 8))
   wr "$w/rtg_boost_freq" "$( [ "$2" = little ] && echo 595200 || echo 0 )"
   wr "$w/pl" 0
@@ -331,9 +320,8 @@ apply_mode() { # mode
     if sec_on freq && [ -n "$cap" ]; then
       SEC=freq; apply_cap "$pol" "$cap" && echo "$pol=$cap" >> "$DATA/expected"
     fi
-    rw=1; if sec_on priority && [ -n "$prio" ]; then rw=0; fi
-    if sec_on threshold; then SEC=threshold; apply_walt "$pol" "$role" "$t" "$rw"; fi
-    if [ "$rw" = 0 ]; then SEC=priority; apply_prio "$pol" "$prio" "$t"; fi
+    if sec_on priority && [ -n "$prio" ]; then SEC=priority; apply_prio "$pol" "$prio"; fi
+    if sec_on threshold; then SEC=threshold; apply_walt "$pol" "$role" "$t"; fi
     if sec_on gov; then SEC=gov; apply_gov "$pol" "$role" "$hsf" "$hsl" "$tls" "$tlt"; fi
   done
   sec_on gov || restore_sec gov
