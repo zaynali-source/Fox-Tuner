@@ -217,6 +217,16 @@ async function dispChange(cmd, revert){
 }
 const revCmd = () => `${D.ow ? 'wm size '+D.ow : 'wm size reset'}; ${D.od ? 'wm density '+D.od : 'wm density reset'}`;
 function ovl(){ const m = (S['hw.bundle']||'').match(/ok=(\d+) bad=(\d+) skip=(\d+)/); if(!m) return S['hw.bundle'] ? S['hw.bundle'] : 'Systemless overlay · reboot to apply'; return `${m[1]} files active` + (+m[2] ? ` · ${m[2]} failed` : '') + (+m[3] ? ` · ${m[3]} not on this ROM` : ''); }
+const TM_ALL = [['battery','Battery'],['normal','Normal'],['performance','Performance'],['extreme','Extreme']];
+let TM = TM_ALL.map(x => x[0]);
+const HAS_TILE = () => { try{ return !!(window.ksu && typeof ksu.tileModes==='function'); }catch(e){ return false; } };
+try{ if(HAS_TILE()){ const l = String(ksu.tileModes()||'').split(',').filter(Boolean); if(l.length) TM = l; } }catch(e){}
+function tileCard(){
+  if(!HAS_TILE()) return '';
+  return `<section class="sec"><div class="hd"><span>Quick Settings tile</span></div>
+    <div class="chips" style="flex-wrap:wrap">${TM_ALL.map(([k,l]) => `<button class="chip${TM.includes(k)?' on':''}" style="flex:1 1 45%" data-tm="${k}">${l}</button>`).join('')}</div>
+    <small style="color:var(--m);display:block;margin-top:12px">One tile, tap to cycle through the selected modes. Add “Fox Tuner” from the Quick Settings edit (pencil) menu.</small></section>`;
+}
 function render(){
   $('ban').innerHTML = (ready || !failed) ? '' : '<div class="ban">Fox Tuner Helper module not responding (showing saved values). Install the helper module in KernelSU / APatch, enable it, reboot, and grant this app root.</div>';
   const m = S.active, R = roles(); if(!R.includes(cluster)) cluster = R[0];
@@ -255,6 +265,7 @@ function render(){
     <section class="sec"><div class="hd"><span>Backup</span><small style="color:var(--m);font-size:11px">${bk.t}</small></div>
       <div class="bk"><button class="btn" id="bkNow">Back up</button><button class="btn" id="bkRes"${bk.ok?'':' style="opacity:.35"'}>Restore</button></div>
       <div class="row" style="margin-top:8px"><span class="g"><b>Auto backup</b><small>${bk.p||'/sdcard/ProfilesTuner'}</small></span><button class="sw${opt('autobackup','1')?' on':''}" data-opt="autobackup"></button></div></section>
+    ${tileCard()}
     <section class="sec"><div class="hd"><span>Reset</span></div>
       <button class="row" id="rm" style="background-image:none"><span class="g"><b>Reset this mode</b></span></button>
       <button class="row" id="ra"><span class="g"><b>Reset all profiles</b></span></button></section>
@@ -308,6 +319,13 @@ $('master').addEventListener('click', () => { const nv = (S['opt.enabled']??'1')
 $('app').addEventListener('click', e => {
   const t = e.target.closest('button'); if(!t) return;
   haptic();
+  if(t.dataset.tm){
+    const k = t.dataset.tm, has = TM.includes(k);
+    if(has && TM.length===1){ toast('Keep at least one mode'); return; }
+    TM = TM_ALL.map(x => x[0]).filter(x => x===k ? !has : TM.includes(x));
+    try{ ksu.setTileModes(TM.join(',')); }catch(e){}
+    t.classList.toggle('on'); return;
+  }
   if(t.dataset.view){ view = t.dataset.view; if(view==='disp'){ render(); loadDisp().then(render); } else render(); return; }
   if(view==='disp'){
     const num = id => { const v = parseInt(document.getElementById(id)?.value,10); return v; };
