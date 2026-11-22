@@ -17,7 +17,6 @@ TOUCH_NODES="$SR/sys/devices/virtual/touch/touch_dev/bump_sample_rate $SR/sys/cl
 hc_all() {
 cat <<'HC'
 opt.enabled=1
-opt.bundle=1
 opt.takeover=1
 opt.default=normal
 opt.autobackup=1

@@ -3,13 +3,13 @@ SKIPUNZIP=0
 DATA=/data/adb/profiles_tuner
 
 ui_print "*******************************************"
-ui_print "   Fox Tuner Helper v1.8"
-ui_print "   PowerHAL + powerhint + thermal overlay"
+ui_print "   Fox Tuner Helper v1.9"
+ui_print "   Apply helper for the Fox Tuner app"
 ui_print "*******************************************"
 
 DEV=$(getprop ro.product.device)
 ui_print "- Device: $DEV ($(getprop ro.product.model))"
-[ "$DEV" != "peridot" ] && ui_print "! Not a POCO F6 (peridot): frequency chips will auto-adapt, bundled configs may not match"
+[ "$DEV" != "peridot" ] && ui_print "! Not a POCO F6 (peridot): frequency chips will auto-adapt"
 
 mkdir -p "$DATA"
 if [ -f "$DATA/profiles.conf" ]; then
@@ -25,13 +25,11 @@ else
     ui_print "- Built-in default profiles will be created on first run"
   fi
 fi
-rm -f "$DATA/boot_guard" "$DATA/ptd.pid"
+rm -f "$DATA/boot_guard" "$DATA/ptd.pid" "$DATA/bundle.log" "$DATA/bundle.stat"
 
 set_perm_recursive "$MODPATH" 0 0 0755 0644
 set_perm_recursive "$MODPATH/bin" 0 0 0755 0755
 set_perm "$MODPATH/service.sh" 0 0 0755
-set_perm "$MODPATH/post-fs-data.sh" 0 0 0755
 set_perm "$MODPATH/uninstall.sh" 0 0 0755
 
-ui_print "- Bundled PowerHAL + thermal files: $(find "$MODPATH/bundle" -type f | wc -l) files"
 ui_print "- Reboot, then open the Fox Tuner app (this module has no UI)"
