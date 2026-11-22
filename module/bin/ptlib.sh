@@ -21,6 +21,7 @@ opt.bundle=1
 opt.takeover=1
 opt.default=normal
 opt.autobackup=1
+opt.watch=0
 sec.threshold=1
 sec.priority=1
 sec.freq=1

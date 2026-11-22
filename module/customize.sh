@@ -3,8 +3,8 @@ SKIPUNZIP=0
 DATA=/data/adb/profiles_tuner
 
 ui_print "*******************************************"
-ui_print "   Profiles Tuner v1.1 Stable"
-ui_print "   Battery / Normal / Performance / Extreme"
+ui_print "   Fox Tuner Helper v1.2"
+ui_print "   PowerHAL + powerhint + thermal overlay"
 ui_print "*******************************************"
 
 DEV=$(getprop ro.product.device)
@@ -34,4 +34,4 @@ set_perm "$MODPATH/post-fs-data.sh" 0 0 0755
 set_perm "$MODPATH/uninstall.sh" 0 0 0755
 
 ui_print "- Bundled PowerHAL + thermal files: $(find "$MODPATH/bundle" -type f | wc -l) files"
-ui_print "- Reboot, then open the module's WebUI (Profiles Tuner)"
+ui_print "- Reboot, then open the Fox Tuner app (this module has no UI)"

@@ -3,28 +3,21 @@ plugins {
 }
 
 android {
-    namespace 'com.zane.profilestuner'
+    namespace 'com.zane.foxtuner'
     compileSdk 34
 
     defaultConfig {
-        applicationId 'com.zane.profilestuner'
+        applicationId 'com.zane.foxtuner'
         minSdk 26
         targetSdk 34
-        versionCode 8
-        versionName '1.1-stable'
+        versionCode 9
+        versionName '1.2'
     }
 
     buildTypes {
         release {
             minifyEnabled false
             signingConfig signingConfigs.debug
-        }
-    }
-
-    // The app UI is the module's WebUI: one single source of truth.
-    sourceSets {
-        main {
-            assets.srcDirs = ['../module/webroot']
         }
     }
 
