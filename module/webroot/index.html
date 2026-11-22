@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Profiles Tuner</title>
+<style>
+:root{--bg:#000;--s:#151515;--s2:#242424;--line:#2a2a2a;--t:#fff;--m:#8c8c8c;--a:#fff;--at:#000;--r:#d71921;--w:#ff8a80;--mono:ui-monospace,"SF Mono",Menlo,"Roboto Mono",monospace}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html,body{margin:0;background:var(--bg);color:var(--t);font:15px/1.35 "Roboto Flex",Roboto,system-ui,-apple-system,sans-serif;overscroll-behavior:none}
+body{padding:0 16px calc(48px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
+button:active{opacity:.7}
+.top{display:flex;align-items:center;gap:12px;padding:calc(30px + env(safe-area-inset-top)) 4px 18px}
+.top h1{font-size:34px;font-weight:300;letter-spacing:-.01em;margin:0;flex:1}
+.dot{width:9px;height:9px;border-radius:50%;background:#333}.dot.on{background:var(--r)}
+.sw{position:relative;width:46px;height:26px;border-radius:13px;background:var(--s2);flex:none;transition:background .12s}
+.sw::after{content:"";position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:#7a7a7a;transition:transform .15s,background .15s}
+.sw.on{background:var(--a)}.sw.on::after{transform:translateX(20px);background:var(--at)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg button{height:62px;border-radius:31px;background:var(--s);font-size:15px;color:var(--t)}
+.seg button.on{background:var(--a);color:var(--at);font-weight:600}
+.tabs{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;background:var(--s);border-radius:22px;padding:4px;margin-top:12px}
+.tabs button{height:38px;border-radius:18px;color:var(--m);font-size:14px}
+.tabs button.on{background:var(--a);color:var(--at);font-weight:600}
+.sec{content-visibility:auto;contain-intrinsic-size:auto 120px;margin-top:12px;background:var(--s);border-radius:28px;padding:16px 18px 18px;contain:layout paint}
+.sec.off .body{opacity:.28;pointer-events:none}
+.hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;min-height:26px}
+.ft{display:flex;align-items:center;gap:8px;flex:1;text-align:left;height:26px}
+.chev{width:7px;height:7px;border-right:1.5px solid var(--m);border-bottom:1.5px solid var(--m);transform:rotate(45deg) translateY(-2px);transition:transform .15s}
+.sec.open .chev{transform:rotate(225deg) translateY(-2px)}
+.sec.fold:not(.open) .body{display:none}
+.sec.fold:not(.open) .hd{margin-bottom:0}
+.hd span{font:11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--m)}
+.chips{display:flex;gap:6px}
+.chip{flex:1 1 0;min-width:0;height:40px;border-radius:20px;background:var(--s2);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}
+.chip.on{background:var(--a);color:var(--at);font-weight:600}
+.chip.rs{height:50px;line-height:1.2;white-space:normal;font-weight:500}.chip.rs span{font-size:11px;opacity:.7;font-weight:400}
+.chip.more{flex:.5;color:var(--m);font-size:18px;line-height:1}
+.sub{font:11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--m);margin:16px 0 8px}
+.cpus{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+.cpu{aspect-ratio:1;border-radius:50%;background:var(--s2);font-size:13px;color:var(--m)}
+.cpu.on{background:var(--a);color:var(--at);font-weight:600}
+.row{display:flex;align-items:center;gap:12px;padding:12px 0;width:100%;text-align:left;background-image:radial-gradient(circle,#3a3a3a 1px,transparent 1.2px);background-size:6px 2px;background-repeat:repeat-x;background-position:top}
+.row:first-of-type,.hd+.row{background-image:none}
+.row .g{flex:1;min-width:0}.row b{display:block;font-weight:400}.row small{color:var(--m);font-size:12px}
+.row.off{opacity:.3;pointer-events:none}
+.lnk{color:var(--t);font:11px var(--mono);letter-spacing:.1em;text-transform:uppercase;text-decoration:underline;text-underline-offset:3px}
+.warn{color:var(--w);font-size:12px;margin-top:8px}
+details{margin-top:12px;background:var(--s);border-radius:28px;padding:0 18px}
+summary{padding:18px 0;color:var(--m);font:11px var(--mono);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;list-style:none}
+summary::-webkit-details-marker{display:none}
+details[open] summary{padding-bottom:6px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;padding:12px 0 6px}
+.tag{font:10px var(--mono);padding:4px 9px;border-radius:12px;background:var(--s2);color:var(--m)}.tag.ok{color:var(--t)}.tag.bad{color:var(--w)}
+.bk{display:flex;gap:8px;margin-top:2px}
+.bk .btn{flex:1;height:44px;padding:0}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center;z-index:10}
+.scrim.show{display:flex}
+.sheet{background:#111;width:100%;max-width:560px;max-height:86vh;border-radius:32px 32px 0 0;padding:22px 20px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column}
+.sheet h4{margin:0 0 4px;font-size:20px;font-weight:400}.sheet p{margin:0 0 10px;font-size:12px;color:var(--m)}
+.list{overflow:auto;flex:1}
+.opt{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.rd{width:20px;height:20px;border-radius:50%;border:2px solid #555;flex:none;position:relative}
+.opt.on .rd{border-color:var(--a)}.opt.on .rd::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--a)}
+.opt .t{flex:1;min-width:0}.opt small{display:block;color:var(--m);font-size:11px}
+.opt select{background:var(--s2);color:var(--t);border:0;border-radius:10px;padding:8px 4px;font:inherit;font-size:13px}
+.act{display:flex;gap:8px;justify-content:flex-end;padding-top:14px}
+.btn{border-radius:22px;padding:11px 22px;font-size:14px;background:var(--s2)}.btn.p{background:var(--a);color:var(--at);font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#fff;color:#000;padding:10px 18px;border-radius:22px;font-size:13px;display:none;z-index:30;white-space:nowrap}
+.toast.show{display:block}
+.in{height:44px;border-radius:22px;background:var(--s2);border:0;color:var(--t);text-align:center;width:100%;font:inherit;outline:0}
+.in:focus{box-shadow:inset 0 0 0 1px #fff}
+.two{display:flex;gap:8px;align-items:center}.two i{color:var(--m);font-style:normal}
+.big{font:300 30px var(--mono);letter-spacing:-.02em}
+.ban{background:#2a1513;color:var(--w);padding:14px;border-radius:22px;margin:8px 0;font-size:13px}
+</style>
+</head>
+<body>
+<div class="top"><h1>Profiles</h1><i class="dot" id="dot"></i><button class="sw" id="master" aria-label="Apply profiles"></button></div>
+<div id="ban"></div>
+<main id="app"></main>
+<div class="scrim" id="scrim"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ---------- bridge (KernelSU / APatch WebUI) ---------- */
+const CTL = 'sh /data/adb/modules/profiles_tuner/bin/ptctl.sh';
+const q = s => "'" + String(s).replace(/'/g, "'\\''") + "'";
+function exec(cmd){
+  return new Promise(res => {
+    if(!window.ksu || typeof ksu.exec !== 'function'){ res({code:-1,out:''}); return; }
+    const cb = '_c' + Date.now() + Math.random().toString(36).slice(2);
+    window[cb] = (code,out) => { res({code,out:out||''}); delete window[cb]; };
+    try{ ksu.exec(cmd,'{}',cb); }catch(e){ res({code:-2,out:''}); }
+  });
+}
+const ctl = (...a) => exec(`${CTL} ${a.map(q).join(' ')}`);
+
+/* one serialized command queue; writes are batched into a single shell call */
+let chain = Promise.resolve(), pend = new Map(), timer = null, extra = [];
+const run = fn => (chain = chain.then(fn).catch(()=>{}));
+function setKey(k,v){ S[k] = v; pend.set(k,v); clearTimeout(timer); timer = setTimeout(flush,120); }
+function flush(){
+  clearTimeout(timer); timer = null;
+  if(!pend.size) return;
+  const items = [...pend]; pend = new Map();
+  const cmd = items.map(([k,v]) => `${CTL} setq ${q(k)} ${q(v)}`).join('; ') + `; ${CTL} apply`;
+  run(() => exec(cmd));
+}
+
+/* ---------- tables ---------- */
+const MODES = [['battery','Battery'],['normal','Normal'],['performance','Performance'],['extreme','Extreme']];
+const CL = [['little','Little'],['big','Big'],['prime','Prime']];
+const PR = [[0,'Minimal'],[1,'Low'],[2,'Medium'],[3,'Maximum']];
+const THR = {battery:[6,10,15,20],normal:[6,10,15,20],performance:[0,3,10,15],extreme:[0,3,10,15]};
+const WIN = {
+  little:{battery:[1708800,1593600,1478400,1344000],normal:[2016000,1900800,1843200,1708800],performance:[2016000,1900800,1843200,1708800],extreme:[2016000,1900800,1843200,1708800]},
+  big:{battery:[2073600,1920000,1824000,1708800],normal:[2361600,2188800,2073600,1920000],performance:[2572800,2361600,2188800,2073600],extreme:[2803200,2707200,2611200,2572800]},
+  prime:{battery:[1900800,1766400,1651200,1459200],normal:[2304000,2150400,1900800,1766400],performance:[2803200,2668800,2457600,2304000],extreme:[3014400,2918400,2803200,2668800]}};
+const GW = {max:{battery:[684,633,500,353],normal:[900,835,736,684],performance:[950,900,835,736],extreme:[1100,1000,950,900]},min:[633,500,353,255]};
+const SHIFT = {extreme:0,performance:3,normal:5,battery:8};
+const TH = [['normal','Normal'],['nolimits','No Limits'],['highfps','High FPS'],['mgame','Mobile Game'],['tgame','T-Game'],['hp-mgame','HP Mobile Game'],['hp-normal','HP Normal'],['cgame','Cloud Game'],['yuanshen','Yuanshen'],['class0','Class 0'],['per-class0','Per Class 0'],['per-normal','Per Normal'],['per-video','Per Video'],['video','Video'],['cclassvideo','C-class Video'],['videochat','Video Chat'],['camera','Camera'],['navigation','Navigation'],['phone','Phone'],['4k','4K'],['arvr','AR/VR'],['huanji','Huanji'],['boost','Boost'],['chg-only','Charge only']];
+const THN = Object.fromEntries(TH);
+const DEF = {"active":"normal","opt.enabled":"1","opt.bundle":"1","opt.takeover":"1","opt.default":"normal","opt.autobackup":"1","sec.threshold":"1","sec.priority":"1","sec.freq":"1","sec.gpu":"1","sec.thermal":"1","sec.touch":"0","sec.gov":"1","sec.cpuset":"0","thermal.normal":"0","thermal.highfps":"6","thermal.nolimits":"10","thermal.mgame":"19","cs.background":"0","cs.camera-daemon":"0,1,2,3,4,5,7","cs.foreground":"0,1,2,3,4,5","cs.foreground_window":"0,1,2,3,4,6,7","cs.restricted":"0,1,2,3,5,6,7","cs.surfaceflinger":"0,1,2,3,4,5,7","cs.system-background":"0,1","cs.top-app":"0,1,2,3,4,5,6,7","battery.threshold":"6","battery.touch":"0","battery.thermal":"normal","battery.little.prio":"3","battery.little.max":"1708800","battery.little.hsfreq":"1113600","battery.little.hsload":"90","battery.little.tls":"4","battery.big.prio":"0","battery.big.max":"1708800","battery.big.hsfreq":"1190400","battery.big.hsload":"85","battery.big.tls":"4","battery.prime.prio":"3","battery.prime.max":"1459200","battery.prime.hsfreq":"1459200","battery.prime.hsload":"85","battery.prime.tls":"4","battery.gpu.max":"353000000","battery.gpu.min":"255000000","normal.threshold":"6","normal.touch":"0","normal.thermal":"nolimits","normal.little.prio":"3","normal.little.max":"2016000","normal.little.hsfreq":"1113600","normal.little.hsload":"90","normal.little.tls":"4","normal.big.prio":"2","normal.big.max":"1920000","normal.big.hsfreq":"1190400","normal.big.hsload":"85","normal.big.tls":"4","normal.prime.prio":"3","normal.prime.max":"2304000","normal.prime.hsfreq":"1459200","normal.prime.hsload":"85","normal.prime.tls":"4","normal.gpu.max":"684000000","normal.gpu.min":"255000000","performance.threshold":"0","performance.touch":"1","performance.thermal":"highfps","performance.little.prio":"3","performance.little.max":"2016000","performance.little.hsfreq":"1113600","performance.little.hsload":"90","performance.little.tls":"4","performance.big.prio":"3","performance.big.max":"2073600","performance.big.hsfreq":"1190400","performance.big.hsload":"85","performance.big.tls":"4","performance.prime.prio":"3","performance.prime.max":"2304000","performance.prime.hsfreq":"1459200","performance.prime.hsload":"85","performance.prime.tls":"4","performance.gpu.max":"736000000","performance.gpu.min":"353000000","extreme.threshold":"0","extreme.touch":"1","extreme.thermal":"nolimits","extreme.little.prio":"3","extreme.little.max":"2016000","extreme.little.hsfreq":"1113600","extreme.little.hsload":"90","extreme.little.tls":"4","extreme.big.prio":"1","extreme.big.max":"2572800","extreme.big.hsfreq":"1190400","extreme.big.hsload":"85","extreme.big.tls":"4","extreme.prime.prio":"3","extreme.prime.max":"2668800","extreme.prime.hsfreq":"1459200","extreme.prime.hsload":"85","extreme.prime.tls":"4","extreme.gpu.max":"900000000","extreme.gpu.min":"255000000"};
+const FULL = {little:[364800,441600,595200,787200,902400,1017600,1113600,1228800,1344000,1478400,1593600,1708800,1843200,1900800,2016000],big:[480000,633600,787200,940800,1056000,1190400,1286400,1401600,1497600,1593600,1708800,1824000,1920000,2073600,2188800,2361600,2572800,2611200,2707200,2803200],prime:[480000,633600,787200,960000,1094400,1209600,1324800,1459200,1651200,1766400,1900800,2150400,2304000,2457600,2668800,2803200,2918400,3014400],gpu:[255,353,500,633,684,736,835,900,950,1000,1100]};
+const CSDEF = ['background','camera-daemon','foreground','foreground_window','restricted','surfaceflinger','system-background','top-app'];
+
+/* ---------- state ---------- */
+const IS_APP = !!(window.ksu && typeof ksu.app === 'function');
+let view = 'prof', D = {pw:0,ph:0,w:0,h:0,pd:0,d:0,ow:'',od:''};
+let S = {...DEF}, cluster = 'little', ready = false;
+try{ const c = localStorage.getItem('pt_state'); if(c) S = {...DEF, ...JSON.parse(c)}; }catch(e){}
+const $ = id => document.getElementById(id);
+function parse(t){ const o = {}; t.split('\n').forEach(l => { const i = l.indexOf('='); if(i > 0) o[l.slice(0,i)] = l.slice(i+1).trim(); }); return o; }
+async function load(){ const r = await ctl('get'); if(!r.out) return false; S = {...DEF, ...parse(r.out)}; ready = true; try{ localStorage.setItem('pt_state', JSON.stringify(S)); }catch(e){} return true; }
+const roles = () => (S['hw.roles']||'little big prime').trim().split(/\s+/).filter(r => CL.some(c => c[0]===r));
+const nums = s => (S[s]||'').trim().split(/\s+/).filter(Boolean).map(Number).sort((a,b)=>a-b);
+const gpuL = () => nums('hw.gpu.freqs').map(n => Math.round(n/1e6));
+const freqs = r => { const l = r==='gpu' ? gpuL() : nums(`hw.${r}.freqs`); return l.length ? l : FULL[r]; };
+function fb(list,mode){ if(!list.length) return []; const top = Math.max(0,list.length-1-(SHIFT[mode]||0)); return [...new Set([0,1,2,3].map(i => list[Math.max(0,top-i)]))]; }
+function winCpu(r,m){ const b = (WIN[r]||{})[m], l = freqs(r); return b && b.every(f => l.includes(f)) ? b : fb(l,m); }
+function winGpu(k,m){ const b = k==='max' ? GW.max[m] : GW.min, l = freqs('gpu'); return b && b.every(f => l.includes(f)) ? b : (k==='max' ? fb(l,m) : l.slice(0,4).reverse()); }
+const ghz = k => (k/1e6).toFixed(2)+' GHz';
+function ranges(s){ const o = []; (s||'').split(',').filter(Boolean).forEach(p => { const [a,b] = p.split('-').map(Number); for(let i=a;i<=(isNaN(b)?a:b);i++) o.push(i); }); return o; }
+function csGroups(){ const g = (S['hw.cs.groups']||'').trim().split(/\s+/).filter(Boolean); return g.length ? g : CSDEF; }
+function csSel(g){ const v = S[`cs.${g}`] ?? S[`cs.cur.${g}`]; return v ? (v.includes('-') ? ranges(v) : v.split(',').filter(Boolean).map(Number)) : []; }
+function ncpu(){ const p = (S['hw.present']||'0-7').split('-'); return (parseInt(p[1],10)||7)+1; }
+
+/* ---------- render ---------- */
+const chips = (items,sel,attr) => `<div class="chips">${items.map(([v,l]) => `<button class="chip${String(v)===String(sel)?' on':''}" ${attr(v)}>${l}</button>`).join('')}</div>`;
+function fmtV(kind,v){ if(v===''||v===undefined||v===null) return 'Auto'; return (kind==='cpu'||kind==='hsf') ? ghz(+v) : (kind==='gmax'||kind==='gmin') ? Math.round(v/1e6) : v; }
+function chipsAll(items,key,kind){
+  const sel = String(S[key] ?? ''); let it = items.slice();
+  if(!it.some(x => String(x[0])===sel)) it = [...it.slice(0,it.length-1),[sel,fmtV(kind,sel)]];
+  return `<div class="chips">${it.map(([v,l]) => `<button class="chip${String(v)===sel?' on':''}" data-k="${key}" data-v="${v}">${l}</button>`).join('')}<button class="chip more" data-all="${key}" data-kind="${kind}" aria-label="All values">⋯</button></div>`;
+}
+function winHs(r){ const l = freqs(r), d = {little:1113600,big:1190400,prime:1459200}[r]||0; let i = l.indexOf(d); if(i<0) i = Math.floor(l.length/2); const st = Math.max(0,Math.min(i-1,l.length-4)); return l.slice(st,st+4).map(f=>[f,ghz(f)]); }
+const FOLD = new Set(['gpu','cpuset','gov']); let OPEN = new Set();
+function section(key,title,inner,extraHd=''){
+  const on = S[`sec.${key}`] !== '0', f = FOLD.has(key);
+  const ttl = f ? `<button class="ft" data-fold="${key}" aria-label="Expand ${title}"><span>${title}</span><i class="chev"></i></button>` : `<span>${title}</span>`;
+  return `<section class="sec${on?'':' off'}${f?' fold'+(OPEN.has(key)?' open':''):''}"><div class="hd">${ttl}<span style="display:flex;gap:12px;align-items:center;text-transform:none;letter-spacing:0">${extraHd}<button class="sw${on?' on':''}" data-sec="${key}" aria-label="${title}"></button></span></div><div class="body">${f && !OPEN.has(key) ? '' : inner}</div></section>`;
+}
+/* ---------- display (app only): resolution + density ---------- */
+const DIR = '${PT_DATA:-/data/adb/profiles_tuner}';
+async function loadDisp(){
+  const r = await exec('wm size; wm density'); const t = r.out;
+  const m = re => { const x = t.match(re); return x ? x.slice(1).map(Number) : null; };
+  const ps = m(/Physical size: (\d+)x(\d+)/), os = m(/Override size: (\d+)x(\d+)/), pd = m(/Physical density: (\d+)/), od = m(/Override density: (\d+)/);
+  if(ps){ D.pw = ps[0]; D.ph = ps[1]; }
+  D.ow = os ? os.join('x') : ''; D.w = os ? os[0] : D.pw; D.h = os ? os[1] : D.ph;
+  if(pd) D.pd = pd[0]; D.od = od ? String(od[0]) : ''; D.d = od ? od[0] : D.pd;
+}
+function dispHtml(){
+  if(!D.pw) return '<div class="ban">Cannot read display info (root needed).</div>';
+  const ev = n => Math.round(n/2)*2;
+  const rp = [100,90,80,70,60].map(p => [ev(D.pw*p/100), ev(D.ph*p/100), p]);
+  const dp = [...new Set([D.pd, 320, 360, 400, 440, 480, 520].filter(Boolean))].sort((a,b)=>a-b);
+  const cur = `${D.w}×${D.h}`;
+  return `<section class="sec"><div class="hd"><span>Resolution</span><button class="lnk" data-dreset="size">Reset</button></div>
+    <div class="big">${cur}</div><small style="color:var(--m)">Native ${D.pw}×${D.ph}</small>
+    <div class="sub">Presets</div>
+    <div class="chips" style="flex-wrap:wrap">${rp.map(([w,h,p]) => `<button class="chip rs${w===D.w&&h===D.h?' on':''}" style="flex:1 1 30%" data-res="${w}x${h}">${p}%<br><span>${w}×${h}</span></button>`).join('')}</div>
+    <div class="sub">Custom</div>
+    <div class="two"><input class="in" id="cw" inputmode="numeric" placeholder="Width" value="${D.w}"><i>×</i><input class="in" id="ch" inputmode="numeric" placeholder="Height" value="${D.h}"></div>
+    <div class="act"><button class="btn p" id="resApply">Apply</button></div></section>
+  <section class="sec"><div class="hd"><span>Density · DPI</span><button class="lnk" data-dreset="density">Reset</button></div>
+    <div class="big">${D.d}</div><small style="color:var(--m)">Native ${D.pd}</small>
+    <div class="sub">Presets</div>
+    <div class="chips" style="flex-wrap:wrap">${dp.map(v => `<button class="chip${v===D.d?' on':''}" style="flex:1 1 20%" data-dpi="${v}">${v}</button>`).join('')}</div>
+    <div class="sub">Custom</div>
+    <div class="two"><input class="in" id="cd" inputmode="numeric" placeholder="DPI" value="${D.d}"></div>
+    <div class="act"><button class="btn p" id="dpiApply">Apply</button></div></section>
+  <p style="color:var(--m);font-size:12px;margin:14px 4px">Changes revert automatically after 20 s unless you tap Keep.</p>`;
+}
+let dispTimer = null, dispLock = false;
+async function dispChange(cmd, revert){
+  const c = `D=${DIR}; mkdir -p "$D"; rm -f "$D/disp_keep"; printf '%s\\n' '${revert}' > "$D/disp_revert.sh"; (sleep 20; [ -f "$D/disp_keep" ] || sh "$D/disp_revert.sh") >/dev/null 2>&1 & ${cmd}`;
+  await exec(c); await new Promise(r=>setTimeout(r,600)); await loadDisp(); render();
+  let n = 15; dispLock = true;
+  const draw = () => sheet(`<h4>Keep these settings?</h4><p>${D.w}×${D.h} · ${D.d} dpi<br>Reverting in ${n} s</p><div class="act"><button class="btn" id="dRev">Revert</button><button class="btn p" id="dKeep">Keep</button></div>`);
+  draw(); clearInterval(dispTimer);
+  dispTimer = setInterval(async () => { n--; if(n>0){ draw(); return; } clearInterval(dispTimer); dispLock = false; closeSheet(); await new Promise(r=>setTimeout(r,6000)); await loadDisp(); render(); }, 1000);
+}
+const revCmd = () => `${D.ow ? 'wm size '+D.ow : 'wm size reset'}; ${D.od ? 'wm density '+D.od : 'wm density reset'}`;
+function render(){
+  $('ban').innerHTML = (ready || !failed) ? '' : '<div class="ban">Cannot reach the module (showing saved values). Open this page from the KernelSU / APatch manager → module → WebUI, and make sure the module is enabled.</div>';
+  const m = S.active, R = roles(); if(!R.includes(cluster)) cluster = R[0];
+  $('dot').className = 'dot' + (S.svc==='1' ? ' on' : '');
+  $('master').className = 'sw' + ((S['opt.enabled']??'1')==='1' ? ' on' : '');
+  const k = x => `data-k="${x}"`;
+  const th = S[`${m}.thermal`] || 'default', thIdx = S[`thermal.${th}`];
+  const thSub = th==='default' ? 'ROM default' : (THN[th]||th) + (thIdx===undefined ? ' · index not set' : '');
+  const gOk = S['hw.gpu.ok']!=='0', noCC = S[`hw.${cluster}.corectl`]==='0';
+  const tg = S['sec.touch']==='1', tm = S[`${m}.touch`]==='1';
+  const opt = (key,def) => (S[`opt.${key}`]??def)==='1';
+  const tag = (ok,t) => `<span class="tag ${ok?'ok':'bad'}">${ok?'✓':'✕'} ${t}</span>`;
+
+  const body = `
+    <div class="seg" id="modes">${MODES.map(([id,l]) => `<button class="${id===m?'on':''}" data-mode="${id}">${l}</button>`).join('')}</div>
+    ${section('threshold','Frequency threshold',chipsAll(THR[m].map(v=>[v,v]),`${m}.threshold`,'thr'))}
+    <div class="tabs" id="cl">${R.map(r => `<button class="${r===cluster?'on':''}" data-cluster="${r}">${CL.find(c=>c[0]===r)[1]}</button>`).join('')}</div>
+    ${section('priority','Cluster priority',chips(PR,S[`${m}.${cluster}.prio`],v=>`data-k="${m}.${cluster}.prio" data-v="${v}"`)+(noCC?`<div class="warn">No core_ctl for this cluster on this kernel.</div>`:''))}
+    ${section('freq','Max frequency',chipsAll(winCpu(cluster,m).map(f=>[f,ghz(f)]),`${m}.${cluster}.max`,'cpu'))}
+    ${section('gov','Governor · WALT',(()=>{ const k=x=>`${m}.${cluster}.${x}`, w=S[`hw.${cluster}.walt`]==='0' ? '<div class="warn">WALT tunables not found for this cluster.</div>' : ''; return w + `<div class="sub" style="margin-top:0">Hispeed frequency</div>${chipsAll(winHs(cluster),k('hsfreq'),'hsf')}<div class="sub">Hispeed load</div>${chipsAll([80,85,90,95].map(v=>[v,v]),k('hsload'),'hsl')}<div class="sub">Target load shift</div>${chipsAll([2,3,4,5].map(v=>[v,v]),k('tls'),'tls')}` + (S[`hw.${cluster}.tlt`]==='0' ? '' : `<div class="sub">Target load thresh</div>${chipsAll([['','Auto'],[25,25],[50,50],[75,75]],k('tlt'),'tlt')}`); })())}
+    ${section('gpu','GPU',gOk ? `<div class="sub" style="margin-top:0">Maximum · MHz</div>${chipsAll(winGpu('max',m).map(f=>[f*1e6,f]),`${m}.gpu.max`,'gmax')}<div class="sub">Minimum · MHz</div>${chipsAll(winGpu('min',m).map(f=>[f*1e6,f]),`${m}.gpu.min`,'gmin')}` : '<div class="warn">GPU devfreq not found.</div>')}
+    ${section('cpuset','Cpuset',S['hw.cs']==='0' ? '<div class="warn">cpuset not found on this ROM.</div>' : '<button class="lnk" id="csReset">Reset</button>'+csGroups().map(g => { const sel = csSel(g); return `<div class="sub">${g[0].toUpperCase()+g.slice(1)}</div><div class="cpus">${Array.from({length:ncpu()},(_,i)=>`<button class="cpu${sel.includes(i)?' on':''}" data-cs="${g}" data-cpu="${i}">${i}</button>`).join('')}</div>`; }).join(''))}
+    <section class="sec${S['sec.thermal']==='0'?' off':''}"><div class="hd"><span>Thermal</span><button class="sw${S['sec.thermal']==='0'?'':' on'}" data-sec="thermal" aria-label="Thermal"></button></div>
+      <button class="row body" id="thBtn" style="padding:0"><span class="g"><b>Thermal profile</b><small>${thSub}</small></span><span style="color:var(--m)">›</span></button></section>
+    <section class="sec"><div class="hd"><span>Touch</span><small style="color:var(--m);font-size:11px">${S['hw.touch']==='1'?'bump_sample_rate':'node not found'}</small></div>
+      <div class="row"><span class="g"><b>High touch sampling</b><small>${tg?'Always on':'Only in '+MODES.find(x=>x[0]===m)[1]}</small></span><button class="sw${(tm||tg)?' on':''}" data-pt="1" aria-label="High touch sampling in this profile"></button></div>
+      <div class="row"><span class="g"><b>Always on</b><small>All profiles</small></span><button class="sw${tg?' on':''}" data-tg="1" aria-label="High touch sampling in all profiles"></button></div></section>
+    <section class="sec"><div class="hd"><span>Backup</span><small style="color:var(--m);font-size:11px">${bk.t}</small></div>
+      <div class="bk"><button class="btn" id="bkNow">Back up</button><button class="btn" id="bkRes"${bk.ok?'':' style="opacity:.35"'}>Restore</button></div>
+      <div class="row" style="margin-top:8px"><span class="g"><b>Auto backup</b><small>${bk.p||'/sdcard/ProfilesTuner'}</small></span><button class="sw${opt('autobackup','1')?' on':''}" data-opt="autobackup"></button></div></section>
+    <details><summary>Advanced</summary>
+      <div class="row"><span class="g"><b>Take over from ROM</b><small>Stops ulquiorrad so it can't overwrite values</small></span><button class="sw${opt('takeover','1')?' on':''}" data-opt="takeover"></button></div>
+      <div class="row"><span class="g"><b>Bundled PowerHAL &amp; thermal files</b><small>Systemless overlay · reboot to apply</small></span><button class="sw${opt('bundle','1')?' on':''}" data-opt="bundle"></button></div>
+      <button class="row" id="rm"><span class="g"><b>Reset this mode</b></span></button>
+      <button class="row" id="ra"><span class="g"><b>Reset all profiles</b></span></button>
+      <div class="tags">${tag(true,'CPU caps')}${tag(R.every(r=>S[`hw.${r}.corectl`]==='1'),'Priority')}${tag(R.some(r=>S[`hw.${r}.walt`]==='1'),'Threshold')}${tag(gOk,'GPU')}${tag(S['hw.cs']==='1','Cpuset')}${tag(S['hw.sconfig']==='1','Thermal')}${tag(S['hw.touch']==='1','Touch')}${tag(S['hw.ulq']==='1','Ulquiorra')}</div>
+      <div class="sub">${S['hw.model']||''} ${S['hw.device']||''}</div>
+    </details>`;
+  const keepOpen = document.querySelector('details')?.open;
+  const vt = IS_APP ? `<div class="tabs" id="views" style="margin:0 0 12px"><button class="${view==='prof'?'on':''}" data-view="prof">Profiles</button><button class="${view==='disp'?'on':''}" data-view="disp">Display</button></div>` : '';
+  $('app').innerHTML = vt + (view==='disp' ? dispHtml() : body);
+  if(keepOpen) document.querySelector('details').open = true;
+}
+
+/* ---------- sheets / toast ---------- */
+let failed = false, tt, bk = {ok:false,t:'no backup yet',p:''};
+async function binfo(){ const r = await ctl('backup-info'); const o = parse(r.out); bk = o.path ? {ok:true,t:o.time||'saved',p:o.path} : {ok:false,t:'no backup yet',p:''}; }
+function toast(t){ const e = $('toast'); e.textContent = t; e.className = 'toast show'; clearTimeout(tt); tt = setTimeout(()=>e.className='toast',1500); }
+const sheet = h => { $('sheet').innerHTML = h; $('scrim').classList.add('show'); };
+const closeSheet = () => $('scrim').classList.remove('show');
+$('scrim').addEventListener('click', e => { if(e.target.id==='scrim' && !dispLock) closeSheet(); });
+function allSheet(key,kind){
+  let vals, fmt, title;
+  if(kind==='thr'){ vals = Array.from({length:21},(_,i)=>i); fmt = v=>v; title = 'Frequency threshold'; }
+  else if(kind==='cpu'){ vals = freqs(cluster).slice().reverse(); fmt = v=>ghz(v); title = CL.find(c=>c[0]===cluster)[1]+' max frequency'; }
+  else if(kind==='hsf'){ vals = freqs(cluster).slice().reverse(); fmt = v=>ghz(v); title = CL.find(c=>c[0]===cluster)[1]+' hispeed frequency'; }
+  else if(kind==='hsl'){ vals = [100,95,90,85,80,75,70,65,60,50,40,30,20,10,1]; fmt = v=>v; title = 'Hispeed load'; }
+  else if(kind==='tls'){ vals = Array.from({length:11},(_,i)=>i); fmt = v=>v; title = 'Target load shift'; }
+  else if(kind==='tlt'){ vals = ['',...Array.from({length:21},(_,i)=>i*5)]; fmt = v=>v===''?'Auto':v; title = 'Target load thresh'; }
+  else { vals = freqs('gpu').map(x=>x*1e6).reverse(); fmt = v=>Math.round(v/1e6)+' MHz'; title = kind==='gmax' ? 'GPU maximum' : 'GPU minimum'; }
+  const cur = S[key] ?? '';
+  sheet(`<h4>${title}</h4><div class="list">${vals.map(v=>`<div class="opt${String(v)===String(cur)?' on':''}" data-pick="${key}" data-v="${v}"><i class="rd"></i><span class="t">${fmt(v)}</span></div>`).join('')}</div><div class="act"><button class="btn p" id="close">Close</button></div>`);
+  const on = $('sheet').querySelector('.opt.on'); if(on) on.scrollIntoView({block:'center'});
+}
+function patch(k){ document.querySelectorAll(`[data-k="${k}"]`).forEach(b => b.classList.toggle('on', b.dataset.v===String(S[k] ?? ''))); }
+function thermalSheet(){
+  const m = S.active, cur = S[`${m}.thermal`]||'default';
+  const sel = n => { const v = S[`thermal.${n}`]??''; return `<select data-tmap="${n}"><option value="">—</option>${Array.from({length:21},(_,i)=>`<option value="${i}"${String(i)===v?' selected':''}>${i}</option>`).join('')}</select>`; };
+  const row = (n,l,s,x) => `<div class="opt${cur===n?' on':''}" data-tpick="${n}"><i class="rd"></i><span class="t">${l}<small>${s}</small></span>${x}</div>`;
+  sheet(`<h4>Thermal profile</h4><p>${MODES.find(x=>x[0]===m)[1]} mode · writes thermal_message/sconfig. Set the index (0–20) each profile uses on your ROM.</p>
+    <div class="list">${row('default','ROM default','leave untouched','')}${TH.map(([n,l]) => { const i = S[`thermal.${n}`]; return row(n,l,i!==undefined&&i!==''?'sconfig '+i:'index not set',sel(n)); }).join('')}</div>
+    <div class="act"><button class="btn" id="detect">Detect</button><button class="btn p" id="close">Done</button></div>`);
+}
+
+/* ---------- events (delegated) ---------- */
+$('master').addEventListener('click', () => { const nv = (S['opt.enabled']??'1')==='1' ? '0' : '1'; S['opt.enabled'] = nv; render(); run(()=>ctl('opt','enabled',nv)); toast(nv==='1'?'Profiles on':'Profiles paused'); });
+$('app').addEventListener('click', e => {
+  const t = e.target.closest('button'); if(!t) return;
+  if(t.dataset.view){ view = t.dataset.view; if(view==='disp'){ render(); loadDisp().then(render); } else render(); return; }
+  if(view==='disp'){
+    const num = id => { const v = parseInt(document.getElementById(id)?.value,10); return v; };
+    if(t.dataset.res){ dispChange('wm size '+t.dataset.res, revCmd()); return; }
+    if(t.dataset.dpi){ dispChange('wm density '+t.dataset.dpi, revCmd()); return; }
+    if(t.dataset.dreset){ dispChange('wm '+t.dataset.dreset+' reset', revCmd()); return; }
+    if(t.id==='resApply'){ const w = num('cw'), h = num('ch'); if(!(w>=320&&w<=D.pw*1.5&&h>=480&&h<=D.ph*1.5)){ toast('Invalid size'); return; } dispChange(`wm size ${w}x${h}`, revCmd()); return; }
+    if(t.id==='dpiApply'){ const d = num('cd'); if(!(d>=120&&d<=800)){ toast('DPI must be 120–800'); return; } dispChange('wm density '+d, revCmd()); return; }
+    return;
+  }
+  if(!ready){ toast('Loading…'); return; }
+  if(t.dataset.fold){ const k = t.dataset.fold; OPEN.has(k) ? OPEN.delete(k) : OPEN.add(k); render(); return; }
+  if(t.dataset.mode){ flush(); S.active = t.dataset.mode; render(); run(()=>ctl('mode',t.dataset.mode)); return; }
+  if(t.dataset.cluster){ cluster = t.dataset.cluster; render(); return; }
+  if(t.dataset.all){ allSheet(t.dataset.all,t.dataset.kind); return; }
+  if(t.dataset.k){ setKey(t.dataset.k,t.dataset.v); patch(t.dataset.k); return; }
+  if(t.dataset.sec){ const k = t.dataset.sec, cur = k==='touch' ? S['sec.touch']==='1' : S[`sec.${k}`]!=='0'; setKey(`sec.${k}`, cur?'0':'1'); t.classList.toggle('on',!cur); const sc = t.closest('.sec'); if(sc) sc.classList.toggle('off',cur); return; }
+  if(t.dataset.cs){
+    const g = t.dataset.cs, i = +t.dataset.cpu; let sel = csSel(g);
+    sel = sel.includes(i) ? sel.filter(x=>x!==i) : [...sel,i].sort((a,b)=>a-b);
+    if(!sel.length){ toast('Keep at least one CPU'); return; }
+    setKey(`cs.${g}`, sel.join(',')); t.classList.toggle('on'); return;
+  }
+  if(t.dataset.tg){ const nv = S['sec.touch']==='1' ? '0' : '1'; setKey('sec.touch',nv); render(); return; }
+  if(t.dataset.pt){ if(S['sec.touch']==='1'){ toast('Already on for all profiles'); return; } const k = `${S.active}.touch`; setKey(k, S[k]==='1' ? '0' : '1'); render(); return; }
+  if(t.id==='bkNow'){ flush(); run(async()=>{ const r = await ctl('backup'); await binfo(); render(); toast(/ok/.test(r.out)?'Backup saved':'Backup failed'); }); return; }
+  if(t.id==='bkRes'){ if(!bk.ok){ toast('No backup found'); return; } sheet(`<h4>Restore backup?</h4><p>${bk.t}<br>Replaces all current profile settings.</p><div class="act"><button class="btn" id="close">Cancel</button><button class="btn p" id="doRes">Restore</button></div>`); return; }
+  if(t.dataset.opt){ const k = t.dataset.opt, nv = (S[`opt.${k}`]??'1')==='1' ? '0' : '1'; S[`opt.${k}`] = nv; render(); run(()=>ctl('opt',k,nv)); if(k==='bundle') toast('Reboot to apply'); return; }
+  if(t.id==='thBtn'){ thermalSheet(); return; }
+  if(t.id==='csReset'){ run(async()=>{ await ctl('resetcs'); await load(); render(); }); toast('Cpuset reset'); return; }
+  if(t.id==='rm') sheet(`<h4>Reset ${MODES.find(x=>x[0]===S.active)[1]}?</h4><p>Restore default values for this mode.</p><div class="act"><button class="btn" id="close">Cancel</button><button class="btn p" id="doRm">Reset</button></div>`);
+  if(t.id==='ra') sheet(`<h4>Reset all profiles?</h4><p>Restore default values for all modes.</p><div class="act"><button class="btn" id="close">Cancel</button><button class="btn p" id="doRa">Reset all</button></div>`);
+});
+$('sheet').addEventListener('click', e => {
+  if(e.target.closest('select')) return;
+  const pk = e.target.closest('[data-pick]');
+  if(pk){ setKey(pk.dataset.pick, pk.dataset.v); closeSheet(); render(); return; }
+  const b = e.target.closest('button');
+  if(b){
+    if(b.id==='dKeep'){ clearInterval(dispTimer); dispLock = false; closeSheet(); exec(`D=${DIR}; mkdir -p "$D"; : > "$D/disp_keep"`); toast('Kept'); return; }
+    if(b.id==='dRev'){ clearInterval(dispTimer); dispLock = false; closeSheet(); exec(`D=${DIR}; sh "$D/disp_revert.sh"; : > "$D/disp_keep"`).then(async()=>{ await new Promise(r=>setTimeout(r,600)); await loadDisp(); render(); }); return; }
+    if(b.id==='close'){ closeSheet(); return; }
+    if(b.id==='doRes'){ closeSheet(); pend = new Map(); run(async()=>{ const r = await ctl('restore'); if(/ok/.test(r.out)){ await load(); render(); toast('Settings restored'); } else toast('Restore failed'); }); return; }
+    if(b.id==='doRm'){ closeSheet(); run(async()=>{ await ctl('reset',S.active); await load(); render(); }); toast('Mode reset'); return; }
+    if(b.id==='doRa'){ closeSheet(); run(async()=>{ await ctl('resetall'); await load(); render(); }); toast('All reset'); return; }
+    if(b.id==='detect'){ detect(); return; }
+  }
+  const p = e.target.closest('[data-tpick]');
+  if(p){ const n = p.dataset.tpick;
+    if(n!=='default' && !(S[`thermal.${n}`]??'')){ toast('Set an index first'); return; }
+    setKey(`${S.active}.thermal`, n); thermalSheet(); render(); toast('Thermal: '+(n==='default'?'ROM default':THN[n])); }
+});
+$('sheet').addEventListener('change', e => {
+  const s = e.target.closest('select[data-tmap]'); if(!s) return;
+  const n = s.dataset.tmap; if(s.value==='') delete S[`thermal.${n}`]; else S[`thermal.${n}`] = s.value;
+  run(()=>ctl('tmap',n,s.value)); thermalSheet(); render();
+});
+async function detect(){
+  toast('Detecting… ~45 s, keep screen on'); await chain; await ctl('detect');
+  for(let i=0;i<30;i++){
+    await new Promise(r=>setTimeout(r,2500));
+    const r = await ctl('detect-status');
+    if(/done/.test(r.out)){
+      let n = 0;
+      for(const l of r.out.split('\n')){ const [ix,nm] = l.split('='); if(nm && THN[nm]!==undefined && S[`thermal.${nm}`]===undefined){ await ctl('tmap',nm,ix); S[`thermal.${nm}`] = ix; n++; } }
+      thermalSheet(); render(); toast(n ? `Detected ${n} indexes` : 'ROM logs nothing; set indexes manually'); return;
+    }
+  }
+}
+
+render();
+(async () => {
+  const ok = await load(); failed = !ok; await binfo(); render();
+  document.addEventListener('visibilitychange', async () => { if(!document.hidden && !pend.size){ await chain; if(await load()) render(); } });
+})();
+</script>
+</body>
+</html>

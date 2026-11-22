@@ -1,0 +1,6 @@
+id=profiles_tuner
+name=Profiles Tuner
+version=v1.1 Stable
+versionCode=8
+author=Zane
+description=Battery / Normal / Performance / Extreme profile tuner (CPU caps, cluster priority, GPU, thermal sconfig) with WebUI + bundled PowerHAL & thermal configs for POCO F6 (peridot).
