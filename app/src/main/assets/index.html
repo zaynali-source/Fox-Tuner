@@ -216,6 +216,7 @@ async function dispChange(cmd, revert){
   dispTimer = setInterval(async () => { n--; if(n>0){ draw(); return; } clearInterval(dispTimer); dispLock = false; closeSheet(); await new Promise(r=>setTimeout(r,6000)); await loadDisp(); render(); }, 1000);
 }
 const revCmd = () => `${D.ow ? 'wm size '+D.ow : 'wm size reset'}; ${D.od ? 'wm density '+D.od : 'wm density reset'}`;
+function ovl(){ const m = (S['hw.bundle']||'').match(/ok=(\d+) bad=(\d+) skip=(\d+)/); if(!m) return S['hw.bundle'] ? S['hw.bundle'] : 'Systemless overlay · reboot to apply'; return `${m[1]} files active` + (+m[2] ? ` · ${m[2]} failed` : '') + (+m[3] ? ` · ${m[3]} not on this ROM` : ''); }
 function render(){
   $('ban').innerHTML = (ready || !failed) ? '' : '<div class="ban">Fox Tuner Helper module not responding (showing saved values). Install the helper module in KernelSU / APatch, enable it, reboot, and grant this app root.</div>';
   const m = S.active, R = roles(); if(!R.includes(cluster)) cluster = R[0];
@@ -247,7 +248,8 @@ function render(){
   const more = `
     <section class="sec"><div class="hd"><span>Helper module</span><i class="dot${S.svc==='1'?' on':''}"></i></div>
       <div class="row"><span class="g"><b>Fox Tuner Helper ${S['hw.ver']||''}</b><small>${S['hw.ver'] ? 'Connected · applies your settings at boot' : 'Not detected'}</small></span></div>
-      <div class="row"><span class="g"><b>PowerHAL, powerhint &amp; thermal</b><small>Systemless overlay · reboot to apply</small></span><button class="sw${opt('bundle','1')?' on':''}" data-opt="bundle"></button></div>
+      <div class="row"><span class="g"><b>PowerHAL, powerhint &amp; thermal</b><small>${ovl()}</small></span><button class="sw${opt('bundle','1')?' on':''}" data-opt="bundle"></button></div>
+      <div class="row"><span class="g"><b>Reload thermal</b><small>Re-check overlay files and restart the thermal daemon</small></span><button class="lnk" id="thReload">Reload</button></div>
       <div class="row"><span class="g"><b>Take over from ROM</b><small>Stops ulquiorrad so it can't overwrite values</small></span><button class="sw${opt('takeover','1')?' on':''}" data-opt="takeover"></button></div>
       <div class="row"><span class="g"><b>Keep enforcing</b><small>Re-applies if the ROM changes values (5 s check). Off = lighter</small></span><button class="sw${opt('watch','0')?' on':''}" data-opt="watch"></button></div></section>
     <section class="sec"><div class="hd"><span>Backup</span><small style="color:var(--m);font-size:11px">${bk.t}</small></div>
@@ -331,6 +333,7 @@ $('app').addEventListener('click', e => {
   }
   if(t.dataset.tg){ const nv = S['sec.touch']==='1' ? '0' : '1'; setKey('sec.touch',nv); render(); return; }
   if(t.dataset.pt){ if(S['sec.touch']==='1'){ toast('Already on for all profiles'); return; } const k = `${S.active}.touch`; setKey(k, S[k]==='1' ? '0' : '1'); render(); return; }
+  if(t.id==='thReload'){ flush(); run(async()=>{ toast('Reloading thermal…'); await ctl('bundle-verify'); const r = await ctl('thermal-reload'); await load(); render(); toast(/ok/.test(r.out)?'Thermal reloaded':'Reload failed'); }); return; }
   if(t.id==='bkNow'){ flush(); run(async()=>{ const r = await ctl('backup'); await binfo(); render(); toast(/ok/.test(r.out)?'Backup saved':'Backup failed'); }); return; }
   if(t.id==='bkRes'){ if(!bk.ok){ toast('No backup found'); return; } sheet(`<h4>Restore backup?</h4><p>${bk.t}<br>Replaces all current profile settings.</p><div class="act"><button class="btn" id="close">Cancel</button><button class="btn p" id="doRes">Restore</button></div>`); return; }
   if(t.dataset.opt){ const k = t.dataset.opt, nv = (S[`opt.${k}`]??DEF[`opt.${k}`]??'1')==='1' ? '0' : '1'; S[`opt.${k}`] = nv; render(); run(()=>ctl('opt',k,nv)); if(k==='bundle') toast('Reboot to apply'); return; }

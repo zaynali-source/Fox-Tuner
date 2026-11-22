@@ -17,6 +17,7 @@ get)
   read -r _di < "$DATA/devinfo"
   echo "hw.device=${_di%%|*}"
   echo "hw.model=${_di#*|}"
+  echo "hw.bundle=$(rd "$DATA/bundle.stat")"
   echo "hw.ulq=$([ -d "$SR/sys/kernel/ulquiorra" ] && echo 1 || echo 0)"
   echo "hw.touch=$([ -n "$(touch_node)" ] && echo 1 || echo 0)"
   echo "hw.touch.cur=$(rd "$(touch_node)")"
@@ -57,6 +58,12 @@ get)
   echo "svc=$([ -f "$DATA/ptd.pid" ] && kill -0 "$(cat "$DATA/ptd.pid")" 2>/dev/null && echo 1 || echo 0)"
   cat "$CONF"
   ;;
+bundle-verify)
+  sh "$DIR/bundle.sh" verify; cat "$DATA/bundle.stat" 2>/dev/null ;;
+thermal-reload)
+  # restart mi_thermald so it re-reads the conf files, then re-apply the thermal profile
+  setprop ctl.restart mi_thermald 2>/dev/null; sleep 2
+  apply_mode "$(active_mode)" >/dev/null; echo ok ;;
 boot)
   # called by the helper at boot: apply once, start the watcher only if enabled
   rm -f "$DATA/disabled"
