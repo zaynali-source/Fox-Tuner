@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<title>Profiles Tuner</title>
+<title>Fox Tuner</title>
 <style>
 :root{--bg:#000;--s:#151515;--s2:#242424;--line:#2a2a2a;--t:#fff;--m:#8c8c8c;--a:#fff;--at:#000;--r:#d71921;--w:#ff8a80;--mono:ui-monospace,"SF Mono",Menlo,"Roboto Mono",monospace}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
@@ -68,19 +68,29 @@ details[open] summary{padding-bottom:6px}
 .opt select{background:var(--s2);color:var(--t);border:0;border-radius:10px;padding:8px 4px;font:inherit;font-size:13px}
 .act{display:flex;gap:8px;justify-content:flex-end;padding-top:14px}
 .btn{border-radius:22px;padding:11px 22px;font-size:14px;background:var(--s2)}.btn.p{background:var(--a);color:var(--at);font-weight:600}
-.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#fff;color:#000;padding:10px 18px;border-radius:22px;font-size:13px;display:none;z-index:30;white-space:nowrap}
+.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#fff;color:#000;padding:10px 18px;border-radius:22px;font-size:13px;display:none;z-index:30;white-space:nowrap}
 .toast.show{display:block}
 .in{height:44px;border-radius:22px;background:var(--s2);border:0;color:var(--t);text-align:center;width:100%;font:inherit;outline:0}
 .in:focus{box-shadow:inset 0 0 0 1px #fff}
 .two{display:flex;gap:8px;align-items:center}.two i{color:var(--m);font-style:normal}
 .big{font:300 30px var(--mono);letter-spacing:-.02em}
+@keyframes fin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#app.f{animation:fin .2s ease-out}
+.sec.open .body{animation:fin .2s ease-out}
+.chip,.seg button,.cpu,.btn,.tabs button{transition:transform .08s,background .12s,color .12s}
+.chip:active,.seg button:active,.cpu:active,.btn:active,.tabs button:active{transform:scale(.95);opacity:1}
+body{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+#nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));width:min(360px,calc(100% - 32px));display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:5px;border-radius:32px;background:rgba(22,22,22,.9);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid #2a2a2a;z-index:5}
+#nav button{height:46px;border-radius:24px;color:var(--m);font-size:14px;transition:background .15s,color .15s}
+#nav button.on{background:var(--a);color:var(--at);font-weight:600}
 .ban{background:#2a1513;color:var(--w);padding:14px;border-radius:22px;margin:8px 0;font-size:13px}
 </style>
 </head>
 <body>
-<div class="top"><h1>Profiles</h1><i class="dot" id="dot"></i><button class="sw" id="master" aria-label="Apply profiles"></button></div>
+<div class="top"><h1>Fox Tuner</h1><i class="dot" id="dot"></i><button class="sw" id="master" aria-label="Apply profiles"></button></div>
 <div id="ban"></div>
-<main id="app"></main>
+<main id="app" class="f"></main>
+<nav id="nav"><button class="on" data-view="prof">Profiles</button><button data-view="disp">Display</button><button data-view="more">More</button></nav>
 <div class="scrim" id="scrim"><div class="sheet" id="sheet"></div></div>
 <div class="toast" id="toast"></div>
 
@@ -129,7 +139,7 @@ const FULL = {little:[364800,441600,595200,787200,902400,1017600,1113600,1228800
 const CSDEF = ['background','camera-daemon','foreground','foreground_window','restricted','surfaceflinger','system-background','top-app'];
 
 /* ---------- state ---------- */
-const IS_APP = !!(window.ksu && typeof ksu.app === 'function');
+const haptic = () => { try{ if(window.ksu && typeof ksu.haptic==='function') ksu.haptic(); }catch(e){} };
 let view = 'prof', D = {pw:0,ph:0,w:0,h:0,pd:0,d:0,ow:'',od:''};
 let S = {...DEF}, cluster = 'little', ready = false;
 try{ const c = localStorage.getItem('pt_state'); if(c) S = {...DEF, ...JSON.parse(c)}; }catch(e){}
@@ -207,7 +217,7 @@ async function dispChange(cmd, revert){
 }
 const revCmd = () => `${D.ow ? 'wm size '+D.ow : 'wm size reset'}; ${D.od ? 'wm density '+D.od : 'wm density reset'}`;
 function render(){
-  $('ban').innerHTML = (ready || !failed) ? '' : '<div class="ban">Cannot reach the module (showing saved values). Open this page from the KernelSU / APatch manager → module → WebUI, and make sure the module is enabled.</div>';
+  $('ban').innerHTML = (ready || !failed) ? '' : '<div class="ban">Fox Tuner Helper module not responding (showing saved values). Install the helper module in KernelSU / APatch, enable it, reboot, and grant this app root.</div>';
   const m = S.active, R = roles(); if(!R.includes(cluster)) cluster = R[0];
   $('dot').className = 'dot' + (S.svc==='1' ? ' on' : '');
   $('master').className = 'sw' + ((S['opt.enabled']??'1')==='1' ? ' on' : '');
@@ -233,20 +243,25 @@ function render(){
     <section class="sec"><div class="hd"><span>Touch</span><small style="color:var(--m);font-size:11px">${S['hw.touch']==='1'?'bump_sample_rate':'node not found'}</small></div>
       <div class="row"><span class="g"><b>High touch sampling</b><small>${tg?'Always on':'Only in '+MODES.find(x=>x[0]===m)[1]}</small></span><button class="sw${(tm||tg)?' on':''}" data-pt="1" aria-label="High touch sampling in this profile"></button></div>
       <div class="row"><span class="g"><b>Always on</b><small>All profiles</small></span><button class="sw${tg?' on':''}" data-tg="1" aria-label="High touch sampling in all profiles"></button></div></section>
+`;
+  const more = `
+    <section class="sec"><div class="hd"><span>Helper module</span><i class="dot${S.svc==='1'?' on':''}"></i></div>
+      <div class="row"><span class="g"><b>Fox Tuner Helper ${S['hw.ver']||''}</b><small>${S['hw.ver'] ? 'Connected · applies your settings at boot' : 'Not detected'}</small></span></div>
+      <div class="row"><span class="g"><b>PowerHAL, powerhint &amp; thermal</b><small>Systemless overlay · reboot to apply</small></span><button class="sw${opt('bundle','1')?' on':''}" data-opt="bundle"></button></div>
+      <div class="row"><span class="g"><b>Take over from ROM</b><small>Stops ulquiorrad so it can't overwrite values</small></span><button class="sw${opt('takeover','1')?' on':''}" data-opt="takeover"></button></div>
+      <div class="row"><span class="g"><b>Keep enforcing</b><small>Re-applies if the ROM changes values (5 s check). Off = lighter</small></span><button class="sw${opt('watch','0')?' on':''}" data-opt="watch"></button></div></section>
     <section class="sec"><div class="hd"><span>Backup</span><small style="color:var(--m);font-size:11px">${bk.t}</small></div>
       <div class="bk"><button class="btn" id="bkNow">Back up</button><button class="btn" id="bkRes"${bk.ok?'':' style="opacity:.35"'}>Restore</button></div>
       <div class="row" style="margin-top:8px"><span class="g"><b>Auto backup</b><small>${bk.p||'/sdcard/ProfilesTuner'}</small></span><button class="sw${opt('autobackup','1')?' on':''}" data-opt="autobackup"></button></div></section>
-    <details><summary>Advanced</summary>
-      <div class="row"><span class="g"><b>Take over from ROM</b><small>Stops ulquiorrad so it can't overwrite values</small></span><button class="sw${opt('takeover','1')?' on':''}" data-opt="takeover"></button></div>
-      <div class="row"><span class="g"><b>Bundled PowerHAL &amp; thermal files</b><small>Systemless overlay · reboot to apply</small></span><button class="sw${opt('bundle','1')?' on':''}" data-opt="bundle"></button></div>
-      <button class="row" id="rm"><span class="g"><b>Reset this mode</b></span></button>
-      <button class="row" id="ra"><span class="g"><b>Reset all profiles</b></span></button>
-      <div class="tags">${tag(true,'CPU caps')}${tag(R.every(r=>S[`hw.${r}.corectl`]==='1'),'Priority')}${tag(R.some(r=>S[`hw.${r}.walt`]==='1'),'Threshold')}${tag(gOk,'GPU')}${tag(S['hw.cs']==='1','Cpuset')}${tag(S['hw.sconfig']==='1','Thermal')}${tag(S['hw.touch']==='1','Touch')}${tag(S['hw.ulq']==='1','Ulquiorra')}</div>
-      <div class="sub">${S['hw.model']||''} ${S['hw.device']||''}</div>
-    </details>`;
+    <section class="sec"><div class="hd"><span>Reset</span></div>
+      <button class="row" id="rm" style="background-image:none"><span class="g"><b>Reset this mode</b></span></button>
+      <button class="row" id="ra"><span class="g"><b>Reset all profiles</b></span></button></section>
+    <section class="sec"><div class="hd"><span>System</span></div>
+      <div class="tags" style="padding-top:0">${tag(true,'CPU caps')}${tag(R.every(r=>S[`hw.${r}.corectl`]==='1'),'Priority')}${tag(R.some(r=>S[`hw.${r}.walt`]==='1'),'Governor')}${tag(gOk,'GPU')}${tag(S['hw.cs']==='1','Cpuset')}${tag(S['hw.sconfig']==='1','Thermal')}${tag(S['hw.touch']==='1','Touch')}${tag(S['hw.ulq']==='1','Ulquiorra')}</div>
+      <div class="sub" style="margin:8px 0 0">${S['hw.model']||''} ${S['hw.device']||''}</div></section>`;
   const keepOpen = document.querySelector('details')?.open;
-  const vt = IS_APP ? `<div class="tabs" id="views" style="margin:0 0 12px"><button class="${view==='prof'?'on':''}" data-view="prof">Profiles</button><button class="${view==='disp'?'on':''}" data-view="disp">Display</button></div>` : '';
-  $('app').innerHTML = vt + (view==='disp' ? dispHtml() : body);
+  const vt = '';
+  $('app').innerHTML = vt + (view==='disp' ? dispHtml() : view==='more' ? more : body);
   if(keepOpen) document.querySelector('details').open = true;
 }
 
@@ -281,9 +296,16 @@ function thermalSheet(){
 }
 
 /* ---------- events (delegated) ---------- */
+function setView(v){
+  view = v; document.querySelectorAll('#nav button').forEach(x => x.classList.toggle('on', x.dataset.view===v));
+  const a = $('app'); a.classList.remove('f'); void a.offsetWidth; a.classList.add('f');
+  window.scrollTo(0,0); render(); if(v==='disp') loadDisp().then(render);
+}
+$('nav').addEventListener('click', e => { const b = e.target.closest('button'); if(b && b.dataset.view && b.dataset.view!==view){ haptic(); setView(b.dataset.view); } });
 $('master').addEventListener('click', () => { const nv = (S['opt.enabled']??'1')==='1' ? '0' : '1'; S['opt.enabled'] = nv; render(); run(()=>ctl('opt','enabled',nv)); toast(nv==='1'?'Profiles on':'Profiles paused'); });
 $('app').addEventListener('click', e => {
   const t = e.target.closest('button'); if(!t) return;
+  haptic();
   if(t.dataset.view){ view = t.dataset.view; if(view==='disp'){ render(); loadDisp().then(render); } else render(); return; }
   if(view==='disp'){
     const num = id => { const v = parseInt(document.getElementById(id)?.value,10); return v; };
@@ -311,7 +333,7 @@ $('app').addEventListener('click', e => {
   if(t.dataset.pt){ if(S['sec.touch']==='1'){ toast('Already on for all profiles'); return; } const k = `${S.active}.touch`; setKey(k, S[k]==='1' ? '0' : '1'); render(); return; }
   if(t.id==='bkNow'){ flush(); run(async()=>{ const r = await ctl('backup'); await binfo(); render(); toast(/ok/.test(r.out)?'Backup saved':'Backup failed'); }); return; }
   if(t.id==='bkRes'){ if(!bk.ok){ toast('No backup found'); return; } sheet(`<h4>Restore backup?</h4><p>${bk.t}<br>Replaces all current profile settings.</p><div class="act"><button class="btn" id="close">Cancel</button><button class="btn p" id="doRes">Restore</button></div>`); return; }
-  if(t.dataset.opt){ const k = t.dataset.opt, nv = (S[`opt.${k}`]??'1')==='1' ? '0' : '1'; S[`opt.${k}`] = nv; render(); run(()=>ctl('opt',k,nv)); if(k==='bundle') toast('Reboot to apply'); return; }
+  if(t.dataset.opt){ const k = t.dataset.opt, nv = (S[`opt.${k}`]??DEF[`opt.${k}`]??'1')==='1' ? '0' : '1'; S[`opt.${k}`] = nv; render(); run(()=>ctl('opt',k,nv)); if(k==='bundle') toast('Reboot to apply'); return; }
   if(t.id==='thBtn'){ thermalSheet(); return; }
   if(t.id==='csReset'){ run(async()=>{ await ctl('resetcs'); await load(); render(); }); toast('Cpuset reset'); return; }
   if(t.id==='rm') sheet(`<h4>Reset ${MODES.find(x=>x[0]===S.active)[1]}?</h4><p>Restore default values for this mode.</p><div class="act"><button class="btn" id="close">Cancel</button><button class="btn p" id="doRm">Reset</button></div>`);

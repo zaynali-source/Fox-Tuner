@@ -12,6 +12,7 @@ cmd=$1; shift
 case "$cmd" in
 get)
   echo "active=$(active_mode)"
+  echo "hw.ver=$(grep -m1 '^version=' "$DIR/../module.prop" 2>/dev/null | cut -d= -f2)"
   [ -s "$DATA/devinfo" ] || { echo "$(getprop ro.product.device 2>/dev/null)|$(getprop ro.product.model 2>/dev/null)" > "$DATA/devinfo"; }
   read -r _di < "$DATA/devinfo"
   echo "hw.device=${_di%%|*}"
@@ -56,6 +57,13 @@ get)
   echo "svc=$([ -f "$DATA/ptd.pid" ] && kill -0 "$(cat "$DATA/ptd.pid")" 2>/dev/null && echo 1 || echo 0)"
   cat "$CONF"
   ;;
+boot)
+  # called by the helper at boot: apply once, start the watcher only if enabled
+  rm -f "$DATA/disabled"
+  [ "$(opt enabled 1)" = 0 ] && { : > "$DATA/disabled"; exit 0; }
+  takeover; apply_mode "$(active_mode)" >/dev/null
+  if [ "$(opt watch 0)" = 1 ] && ! { [ -f "$DATA/ptd.pid" ] && kill -0 "$(cat "$DATA/ptd.pid")" 2>/dev/null; }; then (sh "$DIR/ptd.sh" >/dev/null 2>&1 &); fi
+  echo ok ;;
 backup)
   if [ "$1" = auto ] && [ "$(opt autobackup 1)" != 1 ]; then echo skipped; exit 0; fi
   do_backup && echo ok || echo "fail" ;;
@@ -80,6 +88,10 @@ opt)
   cset "opt.$1" "$2"
   if [ "$1" = enabled ]; then [ "$2" = 0 ] && : > "$DATA/disabled" || rm -f "$DATA/disabled"; fi
   [ "$1" = takeover ] && [ "$2" = 1 ] && takeover
+  if [ "$1" = watch ]; then
+    if [ "$2" = 1 ]; then (sh "$DIR/ptd.sh" >/dev/null 2>&1 &)
+    else kill "$(cat "$DATA/ptd.pid" 2>/dev/null)" 2>/dev/null; rm -f "$DATA/ptd.pid"; fi
+  fi
   echo ok ;;
 tmap)
   ok_key "$1" && ok_val "$2" || { echo "bad args"; exit 1; }
@@ -118,7 +130,7 @@ detect)
 detect-status)
   cat "$DATA/detect.out" 2>/dev/null ;;
 *)
-  echo "usage: ptctl.sh get|mode|apply|set|opt|tmap|reset|resetall|backup|restore|detect"; exit 1 ;;
+  echo "usage: ptctl.sh get|mode|apply|boot|set|opt|tmap|reset|resetall|backup|restore|detect"; exit 1 ;;
 esac
 case "$cmd" in apply|mode|reset|resetall|resetcs|tmap|opt|set)
   [ "$(opt autobackup 1)" = 1 ] && do_backup >/dev/null 2>&1 ;;

@@ -1,7 +1,8 @@
-package com.zane.profilestuner;
+package com.zane.foxtuner;
 
 import android.app.Activity;
 import android.graphics.Color;
+import android.view.HapticFeedbackConstants;
 import android.os.Bundle;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
@@ -17,9 +18,9 @@ import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
 
 /**
- * Profiles Tuner app: hosts the module's WebUI (assets/index.html) and exposes the same
+ * Fox Tuner app: hosts the module's WebUI (assets/index.html) and exposes the same
  * window.ksu.exec(cmd, opts, callbackName) bridge that KernelSU/APatch provide, backed by su.
- * The Profiles Tuner module must be installed (it provides /data/adb/modules/profiles_tuner/bin/ptctl.sh).
+ * The Fox Tuner Helper module must be installed (it provides /data/adb/modules/profiles_tuner/bin/ptctl.sh).
  */
 public class MainActivity extends Activity {
     private WebView web;
@@ -46,6 +47,11 @@ public class MainActivity extends Activity {
     }
 
     private class Bridge {
+        @JavascriptInterface
+        public void haptic() {
+            runOnUiThread(() -> { if (web != null) web.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK); });
+        }
+
         @JavascriptInterface
         public boolean app() { return true; }
 

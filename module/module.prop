@@ -1,6 +1,6 @@
 id=profiles_tuner
-name=Profiles Tuner
-version=v1.1 Stable
-versionCode=8
+name=Fox Tuner Helper
+version=v1.2
+versionCode=9
 author=Zane
-description=Battery / Normal / Performance / Extreme profile tuner (CPU caps, cluster priority, GPU, thermal sconfig) with WebUI + bundled PowerHAL & thermal configs for POCO F6 (peridot).
+description=Helper for the Fox Tuner app: applies the app's settings at boot and ships the PowerHAL, powerhint and thermal configs (POCO F6 peridot). No UI here, open the Fox Tuner app.
