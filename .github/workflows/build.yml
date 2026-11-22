@@ -1,0 +1,46 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build APK
+        run: gradle assembleDebug --no-daemon
+
+      - name: Package module
+        run: |
+          VER=$(grep '^version=' module/module.prop | cut -d= -f2 | tr ' ' '-')
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk "dist/ProfilesTuner-app-$VER.apk"
+          (cd module && zip -qr9 "../dist/ProfilesTuner-module-$VER.zip" .)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ProfilesTuner
+          path: dist/*
+
+      - name: Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
