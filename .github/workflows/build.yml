@@ -27,20 +27,27 @@ jobs:
       - name: Build APK
         run: gradle assembleDebug --no-daemon
 
-      - name: Package module
+      - name: Package
         run: |
           VER=$(grep '^version=' module/module.prop | cut -d= -f2 | tr ' ' '-')
+          echo "TAG=$(echo "$VER" | tr 'A-Z' 'a-z')" >> "$GITHUB_ENV"
+          echo "VER=$VER" >> "$GITHUB_ENV"
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk "dist/ProfilesTuner-app-$VER.apk"
           (cd module && zip -qr9 "../dist/ProfilesTuner-module-$VER.zip" .)
+          ls -la dist
 
       - uses: actions/upload-artifact@v4
         with:
           name: ProfilesTuner
           path: dist/*
 
-      - name: Release (tags only)
-        if: startsWith(github.ref, 'refs/tags/')
+      # Direct, un-zipped downloads (APK + module zip) on the Releases page
+      - name: Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.TAG }}
+          target_commitish: ${{ github.sha }}
+          name: Fox Tuner ${{ env.VER }}
           files: dist/*
+          fail_on_unmatched_files: true
