@@ -243,13 +243,28 @@ apply_cap() { # policy cap(kHz)
 }
 
 apply_prio() { # policy prio(0-3) threshold
-  # Priority = how fast the cluster changes frequency (Ulquiorra: "the lower the priority, the slower the
-  # core changes its frequency"). Implemented as extra delay on the WALT up/down rate limits.
-  w=$CPUFREQ/$1/walt
-  [ -d "$w" ] || { log "walt tunables missing for $1"; return 1; }
-  case "$2" in 3) x=0 ;; 2) x=1500 ;; 1) x=3000 ;; *) x=6000 ;; esac
-  wr "$w/up_rate_limit_us" $(( $3 * 200 + x ))
-  wr "$w/down_rate_limit_us" $(( 2000 + $3 * 300 + x ))
+  # 1) core_ctl: how many cores of the cluster may stay online (lower priority = cores can be parked)
+  d=$CPUFREQ/$1; prio=$2; thr=$3
+  set -- $(rd "$d/related_cpus"); first=$1; n=$#
+  cc=$SR/sys/devices/system/cpu/cpu$first/core_ctl
+  if [ -d "$cc" ]; then
+    case "$prio" in
+      3) mn=$n ;;
+      2) mn=$(( (n * 3 + 3) / 4 )) ;;
+      1) mn=$(( (n + 1) / 2 )) ;;
+      *) mn=0 ;;
+    esac
+    [ "$first" = 0 ] && [ "$mn" -lt 1 ] && mn=1
+    wr "$cc/max_cpus" "$n"
+    wr "$cc/min_cpus" "$mn"
+  else log "core_ctl missing for cpu$first"; fi
+  # 2) Ulquiorra: "the lower the priority, the slower the core changes its frequency"
+  #    -> extra delay on the WALT up/down rate limits
+  w=$d/walt
+  [ -d "$w" ] || { log "walt tunables missing for $d"; return 1; }
+  case "$prio" in 3) x=0 ;; 2) x=1500 ;; 1) x=3000 ;; *) x=6000 ;; esac
+  wr "$w/up_rate_limit_us" $(( thr * 200 + x ))
+  wr "$w/down_rate_limit_us" $(( 2000 + thr * 300 + x ))
 }
 
 apply_walt() { # policy role threshold rates(1 = also write rate limits)
