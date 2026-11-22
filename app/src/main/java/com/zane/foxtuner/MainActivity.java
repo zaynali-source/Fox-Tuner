@@ -53,6 +53,12 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public String tileModes() { return FoxTunerTileService.getCsv(MainActivity.this); }
+
+        @JavascriptInterface
+        public void setTileModes(String csv) { FoxTunerTileService.saveCsv(MainActivity.this, csv); }
+
+        @JavascriptInterface
         public boolean app() { return true; }
 
         @JavascriptInterface
