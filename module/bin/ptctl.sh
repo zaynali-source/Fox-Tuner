@@ -59,6 +59,7 @@ get)
   cat "$CONF"
   ;;
 bundle-verify)
+  [ "$(opt bundle 1)" = 0 ] && { echo "overlay disabled in app"; exit 0; }
   sh "$DIR/bundle.sh" verify; cat "$DATA/bundle.stat" 2>/dev/null ;;
 thermal-reload)
   # restart mi_thermald so it re-reads the conf files, then re-apply the thermal profile

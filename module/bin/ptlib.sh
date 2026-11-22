@@ -358,10 +358,10 @@ drift() { # 0 when something differs from the last applied state (builtins only,
   while IFS== read k v; do
     c=
     case "$k" in
-      gpu) [ -n "$GPUDEV" ] && { read -r c < "$GPUDEV/max_freq"; [ "$c" != "$v" ] && return 0; } ;;
+      gpu) [ -n "$GPUDEV" ] && { read -r c < "$GPUDEV/max_freq"; [ "$c" != "$v" ] && { DK="$k now=$c want=$v"; return 0; }; } ;;
       cs.*) g=${k#cs.}; f=$CSROOT/$g/cpus; [ -e "$f" ] || f=$CSROOT/$g/cpuset.cpus
-            [ -e "$f" ] && { read -r c < "$f"; [ "$c" != "$v" ] && return 0; } ;;
-      *) read -r c < "$CPUFREQ/$k/scaling_max_freq"; [ "$c" != "$v" ] && return 0 ;;
+            [ -e "$f" ] && { read -r c < "$f"; [ "$c" != "$v" ] && { DK="$k now=$c want=$v"; return 0; }; } ;;
+      *) read -r c < "$CPUFREQ/$k/scaling_max_freq"; [ "$c" != "$v" ] && { DK="$k now=$c want=$v"; return 0; } ;;
     esac
   done < "$DATA/expected"
   return 1
