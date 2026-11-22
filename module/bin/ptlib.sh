@@ -242,27 +242,23 @@ apply_cap() { # policy cap(kHz)
   wr "$d/scaling_max_freq" "$cap"
 }
 
-apply_prio() { # policy prio(0-3)
-  d=$CPUFREQ/$1; prio=$2
-  set -- $(rd "$d/related_cpus"); first=$1; n=$#
-  cc=$SR/sys/devices/system/cpu/cpu$first/core_ctl
-  [ -d "$cc" ] || { log "core_ctl missing for cpu$first"; return 1; }
-  case "$prio" in
-    3) mn=$n ;;
-    2) mn=$(( (n * 3 + 3) / 4 )) ;;
-    1) mn=$(( (n + 1) / 2 )) ;;
-    *) mn=0 ;;
-  esac
-  [ "$first" = 0 ] && [ "$mn" -lt 1 ] && mn=1
-  wr "$cc/max_cpus" "$n"
-  wr "$cc/min_cpus" "$mn"
+apply_prio() { # policy prio(0-3) threshold
+  # Priority = how fast the cluster changes frequency (Ulquiorra: "the lower the priority, the slower the
+  # core changes its frequency"). Implemented as extra delay on the WALT up/down rate limits.
+  w=$CPUFREQ/$1/walt
+  [ -d "$w" ] || { log "walt tunables missing for $1"; return 1; }
+  case "$2" in 3) x=0 ;; 2) x=1500 ;; 1) x=3000 ;; *) x=6000 ;; esac
+  wr "$w/up_rate_limit_us" $(( $3 * 200 + x ))
+  wr "$w/down_rate_limit_us" $(( 2000 + $3 * 300 + x ))
 }
 
-apply_walt() { # policy role threshold   (rate limits + auto load shift)
+apply_walt() { # policy role threshold rates(1 = also write rate limits)
   w=$CPUFREQ/$1/walt; t=$3
   [ -d "$w" ] || { log "walt tunables missing for $1"; return 1; }
-  wr "$w/up_rate_limit_us" $((t * 200))
-  wr "$w/down_rate_limit_us" $((2000 + t * 300))
+  if [ "$4" = 1 ]; then
+    wr "$w/up_rate_limit_us" $((t * 200))
+    wr "$w/down_rate_limit_us" $((2000 + t * 300))
+  fi
   wr "$w/target_load_shift" $((4 + t / 8))
   wr "$w/rtg_boost_freq" "$( [ "$2" = little ] && echo 595200 || echo 0 )"
   wr "$w/pl" 0
@@ -320,8 +316,9 @@ apply_mode() { # mode
     if sec_on freq && [ -n "$cap" ]; then
       SEC=freq; apply_cap "$pol" "$cap" && echo "$pol=$cap" >> "$DATA/expected"
     fi
-    if sec_on priority && [ -n "$prio" ]; then SEC=priority; apply_prio "$pol" "$prio"; fi
-    if sec_on threshold; then SEC=threshold; apply_walt "$pol" "$role" "$t"; fi
+    rw=1; if sec_on priority && [ -n "$prio" ]; then rw=0; fi
+    if sec_on threshold; then SEC=threshold; apply_walt "$pol" "$role" "$t" "$rw"; fi
+    if [ "$rw" = 0 ]; then SEC=priority; apply_prio "$pol" "$prio" "$t"; fi
     if sec_on gov; then SEC=gov; apply_gov "$pol" "$role" "$hsf" "$hsl" "$tls" "$tlt"; fi
   done
   sec_on gov || restore_sec gov

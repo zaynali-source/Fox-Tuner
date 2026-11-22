@@ -235,7 +235,7 @@ function render(){
   const k = x => `data-k="${x}"`;
   const th = S[`${m}.thermal`] || 'default', thIdx = S[`thermal.${th}`];
   const thSub = th==='default' ? 'ROM default' : (THN[th]||th) + (thIdx===undefined ? ' · index not set' : '');
-  const gOk = S['hw.gpu.ok']!=='0', noCC = S[`hw.${cluster}.corectl`]==='0';
+  const gOk = S['hw.gpu.ok']!=='0', noCC = S[`hw.${cluster}.walt`]==='0';
   const tg = S['sec.touch']==='1', tm = S[`${m}.touch`]==='1';
   const opt = (key,def) => (S[`opt.${key}`]??def)==='1';
   const tag = (ok,t) => `<span class="tag ${ok?'ok':'bad'}">${ok?'✓':'✕'} ${t}</span>`;
@@ -244,7 +244,7 @@ function render(){
     <div class="seg" id="modes">${MODES.map(([id,l]) => `<button class="${id===m?'on':''}" data-mode="${id}">${l}</button>`).join('')}</div>
     ${section('threshold','Frequency threshold',chipsAll(THR[m].map(v=>[v,v]),`${m}.threshold`,'thr'))}
     <div class="tabs" id="cl">${R.map(r => `<button class="${r===cluster?'on':''}" data-cluster="${r}">${CL.find(c=>c[0]===r)[1]}</button>`).join('')}</div>
-    ${section('priority','Cluster priority',chips(PR,S[`${m}.${cluster}.prio`],v=>`data-k="${m}.${cluster}.prio" data-v="${v}"`)+(noCC?`<div class="warn">No core_ctl for this cluster on this kernel.</div>`:''))}
+    ${section('priority','Cluster priority',chips(PR,S[`${m}.${cluster}.prio`],v=>`data-k="${m}.${cluster}.prio" data-v="${v}"`)+`<small style="color:var(--m);display:block;margin-top:10px">Lower priority = this cluster changes frequency more slowly.</small>`+(noCC?`<div class="warn">No WALT governor for this cluster on this kernel.</div>`:''))}
     ${section('freq','Max frequency',chipsAll(winCpu(cluster,m).map(f=>[f,ghz(f)]),`${m}.${cluster}.max`,'cpu'))}
     ${section('gov','Governor · WALT',(()=>{ const k=x=>`${m}.${cluster}.${x}`, w=S[`hw.${cluster}.walt`]==='0' ? '<div class="warn">WALT tunables not found for this cluster.</div>' : ''; return w + `<div class="sub" style="margin-top:0">Hispeed frequency</div>${chipsAll(winHs(cluster),k('hsfreq'),'hsf')}<div class="sub">Hispeed load</div>${chipsAll([80,85,90,95].map(v=>[v,v]),k('hsload'),'hsl')}<div class="sub">Target load shift</div>${chipsAll([2,3,4,5].map(v=>[v,v]),k('tls'),'tls')}` + (S[`hw.${cluster}.tlt`]==='0' ? '' : `<div class="sub">Target load thresh</div>${chipsAll([['','Auto'],[25,25],[50,50],[75,75]],k('tlt'),'tlt')}`); })())}
     ${section('gpu','GPU',gOk ? `<div class="sub" style="margin-top:0">Maximum · MHz</div>${chipsAll(winGpu('max',m).map(f=>[f*1e6,f]),`${m}.gpu.max`,'gmax')}<div class="sub">Minimum · MHz</div>${chipsAll(winGpu('min',m).map(f=>[f*1e6,f]),`${m}.gpu.min`,'gmin')}` : '<div class="warn">GPU devfreq not found.</div>')}
@@ -270,7 +270,7 @@ function render(){
       <button class="row" id="rm" style="background-image:none"><span class="g"><b>Reset this mode</b></span></button>
       <button class="row" id="ra"><span class="g"><b>Reset all profiles</b></span></button></section>
     <section class="sec"><div class="hd"><span>System</span></div>
-      <div class="tags" style="padding-top:0">${tag(true,'CPU caps')}${tag(R.every(r=>S[`hw.${r}.corectl`]==='1'),'Priority')}${tag(R.some(r=>S[`hw.${r}.walt`]==='1'),'Governor')}${tag(gOk,'GPU')}${tag(S['hw.cs']==='1','Cpuset')}${tag(S['hw.sconfig']==='1','Thermal')}${tag(S['hw.touch']==='1','Touch')}${tag(S['hw.ulq']==='1','Ulquiorra')}</div>
+      <div class="tags" style="padding-top:0">${tag(true,'CPU caps')}${tag(R.every(r=>S[`hw.${r}.walt`]==='1'),'Priority')}${tag(R.some(r=>S[`hw.${r}.walt`]==='1'),'Governor')}${tag(gOk,'GPU')}${tag(S['hw.cs']==='1','Cpuset')}${tag(S['hw.sconfig']==='1','Thermal')}${tag(S['hw.touch']==='1','Touch')}${tag(S['hw.ulq']==='1','Ulquiorra')}</div>
       <div class="sub" style="margin:8px 0 0">${S['hw.model']||''} ${S['hw.device']||''}</div></section>`;
   const keepOpen = document.querySelector('details')?.open;
   const vt = '';
