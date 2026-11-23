@@ -1,0 +1,13 @@
+#!/sbin/sh
+# Standard Magisk / KernelSU / APatch module installer stub
+umask 022
+OUTFD=$2
+ZIPFILE=$3
+ui_print() { echo "$1"; }
+if [ -f /data/adb/magisk/util_functions.sh ]; then
+  . /data/adb/magisk/util_functions.sh
+else
+  echo "! Install from the Magisk / KernelSU / APatch manager"; exit 1
+fi
+install_module
+exit 0

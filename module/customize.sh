@@ -3,8 +3,8 @@ SKIPUNZIP=0
 DATA=/data/adb/profiles_tuner
 
 ui_print "*******************************************"
-ui_print "   Fox Tuner Helper v1.9"
-ui_print "   Apply helper for the Fox Tuner app"
+ui_print "   Fox Tuner Helper v2.0"
+ui_print "   Apply helper + PowerHAL powerhint overlay"
 ui_print "*******************************************"
 
 DEV=$(getprop ro.product.device)
@@ -30,6 +30,8 @@ rm -f "$DATA/boot_guard" "$DATA/ptd.pid" "$DATA/bundle.log" "$DATA/bundle.stat"
 set_perm_recursive "$MODPATH" 0 0 0755 0644
 set_perm_recursive "$MODPATH/bin" 0 0 0755 0755
 set_perm "$MODPATH/service.sh" 0 0 0755
+set_perm "$MODPATH/post-fs-data.sh" 0 0 0755
 set_perm "$MODPATH/uninstall.sh" 0 0 0755
 
+ui_print "- PowerHAL powerhint.json bundled (systemless, original untouched)"
 ui_print "- Reboot, then open the Fox Tuner app (this module has no UI)"

@@ -20,6 +20,7 @@ opt.enabled=1
 opt.takeover=1
 opt.default=normal
 opt.autobackup=1
+opt.bundle=1
 opt.watch=0
 sec.threshold=1
 sec.priority=1
@@ -127,7 +128,12 @@ HC
 mkdir -p "$DATA" 2>/dev/null
 [ -f "$CONF" ] || : > "$CONF"
 # add any key that is missing (keeps the user's edits, fills new options after updates)
-MISS=$(hc_all | while IFS== read k v; do grep -q "^$k=" "$CONF" || echo "$k=$v"; done)
+KEYS="
+$(while IFS== read -r k _; do echo "$k"; done < "$CONF")
+"
+MISS=$(hc_all | while IFS== read k v; do case "$KEYS" in *"
+$k
+"*) ;; *) echo "$k=$v" ;; esac; done)
 [ -n "$MISS" ] && echo "$MISS" >> "$CONF"
 
 log() { echo "$(date +%H:%M:%S) $*" >> "$LOG" 2>/dev/null; }

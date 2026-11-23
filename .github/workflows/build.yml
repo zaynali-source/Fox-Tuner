@@ -35,6 +35,8 @@ jobs:
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk "dist/FoxTuner-app-$VER.apk"
           (cd module && zip -qr9 "../dist/FoxTuner-helper-$VER.zip" .)
+          OV=$(grep '^version=' overlay/module.prop | cut -d= -f2)
+          (cd overlay && zip -qr9 "../dist/FoxOverlay-$OV.zip" .)
           ls -la dist
 
       - uses: actions/upload-artifact@v4

@@ -108,10 +108,11 @@ public class FoxTunerTileService extends TileService {
     @Override
     public void onStartListening() {
         listening = true;
+        try { current = getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("cur", current); } catch (Exception ignored) { }
         paint();
         IO.execute(() -> {
             String a = readActive();
-            if (a != null) { current = a; ui.post(this::paint); }
+            if (a != null) { current = a; remember(a); ui.post(this::paint); }
         });
     }
 
@@ -123,21 +124,32 @@ public class FoxTunerTileService extends TileService {
     @Override
     public void onClick() {
         final List<String> modes = enabled(getCsv(this));
+        // instant feedback: show the next mode right away from the cached one, then apply with ONE root call
+        final String cached = current;
+        int i0 = modes.indexOf(cached);
+        final String guess = modes.get((i0 + 1) % modes.size());
+        current = guess;
+        paint();
         IO.execute(() -> {
             try {
-                String cur = readActive();
-                if (cur == null) cur = current;
-                int i = modes.indexOf(cur);
-                final String next = modes.get((i + 1) % modes.size());
-                current = next;
-                ui.post(this::paint);
-                String r = su("sh " + CTL + " mode " + next);
-                if (r == null || !r.contains("ok")) {
+                String r = su("sh " + CTL + " cycle " + join(modes));
+                String got = null;
+                if (r != null) {
+                    int k = r.lastIndexOf("ok ");
+                    if (k >= 0) got = r.substring(k + 3).trim();
+                }
+                if (got != null) {
+                    for (String m : ALL) if (m.equals(got)) { current = m; remember(m); }
+                } else {
                     String a = readActive();
                     if (a != null) current = a;
-                    ui.post(this::paint);
                 }
+                ui.post(this::paint);
             } catch (Exception ignored) { }
         });
+    }
+
+    private void remember(String m) {
+        try { getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("cur", m).apply(); } catch (Exception ignored) { }
     }
 }

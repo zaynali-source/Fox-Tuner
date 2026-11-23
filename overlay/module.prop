@@ -1,0 +1,6 @@
+id=fox_overlay
+name=Fox Overlay (PowerHAL + Thermal)
+version=v1.2
+versionCode=3
+author=Zane
+description=Systemless PowerHAL, powerhint and thermal config overlay for POCO F6 (peridot). Works alongside Fox Tuner; no UI.

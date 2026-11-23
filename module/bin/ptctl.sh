@@ -17,6 +17,7 @@ get)
   read -r _di < "$DATA/devinfo"
   echo "hw.device=${_di%%|*}"
   echo "hw.model=${_di#*|}"
+  echo "hw.bundle=$(rd "$DATA/bundle.stat")"
   echo "hw.ulq=$([ -d "$SR/sys/kernel/ulquiorra" ] && echo 1 || echo 0)"
   echo "hw.touch=$([ -n "$(touch_node)" ] && echo 1 || echo 0)"
   echo "hw.touch.cur=$(rd "$(touch_node)")"
@@ -57,6 +58,10 @@ get)
   echo "svc=$([ -f "$DATA/ptd.pid" ] && kill -0 "$(cat "$DATA/ptd.pid")" 2>/dev/null && echo 1 || echo 0)"
   cat "$CONF"
   ;;
+bundle-verify)
+  [ "$(opt bundle 1)" = 0 ] && { echo "disabled in app"; exit 0; }
+  sh "$DIR/bundle.sh" verify; [ -f "$DATA/hal_restart" ] && { rm -f "$DATA/hal_restart"; pkill -f android.hardware.power-service; }
+  cat "$DATA/bundle.stat" 2>/dev/null ;;
 boot)
   # called by the helper at boot: apply once, start the watcher only if enabled
   rm -f "$DATA/disabled"
@@ -73,6 +78,16 @@ backup-info)
   if [ -s "$BK" ]; then echo "path=$BK"; echo "size=$(wc -c < "$BK")"; echo "time=$(date -r "$BK" '+%d %b %Y, %H:%M' 2>/dev/null)"; else echo "none"; fi ;;
 mode)
   m=$1; apply_mode "$m" && echo ok ;;
+cycle)
+  # one call for the QS tile: next enabled mode after the active one
+  cur=$(active_mode); first=""; nx=""; found=0
+  IFS=,; for m in $1; do
+    [ -z "$first" ] && first=$m
+    [ "$found" = 1 ] && { nx=$m; break; }
+    [ "$m" = "$cur" ] && found=1
+  done; unset IFS
+  [ -z "$nx" ] && nx=$first
+  apply_mode "$nx" >/dev/null && echo "ok $nx" || echo fail ;;
 apply)
   apply_mode "$(active_mode)" && echo ok ;;
 set)
@@ -132,6 +147,6 @@ detect-status)
 *)
   echo "usage: ptctl.sh get|mode|apply|boot|set|opt|tmap|reset|resetall|backup|restore|detect"; exit 1 ;;
 esac
-case "$cmd" in apply|mode|reset|resetall|resetcs|tmap|opt|set)
+case "$cmd" in apply|mode|cycle|reset|resetall|resetcs|tmap|opt|set)
   [ "$(opt autobackup 1)" = 1 ] && do_backup >/dev/null 2>&1 ;;
 esac
