@@ -329,7 +329,7 @@ apply_gov() { # policy role hispeed_freq hispeed_load target_load_shift target_l
   hf=${3:-$df}; hl=${4:-$dl}
   case " $(rd "$CPUFREQ/$1/scaling_available_frequencies") " in *" $hf "*) wr "$w/hispeed_freq" "$hf" ;; esac
   wr "$w/hispeed_load" "$hl"
-  if [ -n "$5" ]; then tl=$(( $5 + ${t:-0} / 5 )); [ "$tl" -gt 10 ] && tl=10; [ "$tl" -lt 0 ] && tl=0; wr "$w/target_load_shift" "$tl"; fi
+  if [ -n "$5" ]; then tl=$(( $5 + ${GT:-0} / 5 )); [ "$tl" -gt 10 ] && tl=10; [ "$tl" -lt 0 ] && tl=0; wr "$w/target_load_shift" "$tl"; fi
   [ -n "$6" ] && wr "$w/target_load_thresh" "$6"
 }
 
@@ -349,6 +349,8 @@ apply_gpu() { # max(Hz) min(Hz)
 
 thermal_idx() { [ "$1" = default ] || cget "thermal.$1"; }
 
+fox_overlay_active() { m=${PT_MODS:-/data/adb/modules}/fox_overlay; [ -d "$m" ] && [ ! -e "$m/disable" ] && [ ! -e "$m/remove" ]; }
+
 takeover() {
   [ "$(opt takeover 1)" = 1 ] || return
   command -v getprop >/dev/null 2>&1 || return
@@ -365,6 +367,8 @@ apply_mode() { # mode
   eval "$(grep "^$m\." "$CONF" | sed "s/^$m\.//; s/\./_/g; s/=\(.*\)\$/=\"\1\"/; s/^/M_/")"
   : > "$DATA/expected"
   t=${M_threshold:-0}
+  # the governor's own load shift stacks on the threshold's, so it only counts while Threshold is on
+  GT=$t; sec_on threshold || GT=0
   clusters | while read role pol; do
     eval "cap=\$M_${role}_max; prio=\$M_${role}_prio; hsf=\$M_${role}_hsfreq; hsl=\$M_${role}_hsload; tls=\$M_${role}_tls; tlt=\$M_${role}_tlt; minc=\$M_${role}_minc; rtg=\$M_${role}_rtg; bst=\$M_${role}_boost"
     ROLE=$role

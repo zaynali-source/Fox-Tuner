@@ -18,6 +18,7 @@ get)
   echo "hw.device=${_di%%|*}"
   echo "hw.model=${_di#*|}"
   echo "hw.bundle=$(rd "$DATA/bundle.stat")"
+  echo "hw.ovl2=$(fox_overlay_active && echo 1 || echo 0)"
   echo "hw.ulq=$([ -d "$SR/sys/kernel/ulquiorra" ] && echo 1 || echo 0)"
   echo "hw.touch=$([ -n "$(touch_node)" ] && echo 1 || echo 0)"
   echo "hw.touch.cur=$(rd "$(touch_node)")"
@@ -64,6 +65,7 @@ get)
   ;;
 bundle-verify)
   [ "$(opt bundle 1)" = 0 ] && { echo "disabled in app"; exit 0; }
+  fox_overlay_active && { echo "yielded to FoxOverlay" > "$DATA/bundle.stat"; echo "yielded to FoxOverlay"; exit 0; }
   sh "$DIR/bundle.sh" verify; [ -f "$DATA/hal_restart" ] && { rm -f "$DATA/hal_restart"; pkill -f android.hardware.power-service; }
   cat "$DATA/bundle.stat" 2>/dev/null ;;
 boot)

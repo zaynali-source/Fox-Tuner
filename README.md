@@ -22,3 +22,8 @@ Author: Zane
 - New Game page: per-app mode override, touch tuning (swipe continuity, jitter, sensitivity, tap accuracy, palm rejection or expert preset), super report rate, THP boost on 12 GB+ devices.
 - Touch test in More.
 - Works without the Ulq kernel.
+
+## v2.2: conflict audit
+- Governor load shift now only stacks on the threshold's while Threshold is on (was adding it even when off).
+- Helper's PowerHAL overlay yields automatically when the FoxOverlay module is active (both mount the same files); the toggle is greyed with the reason.
+- Governor hispeed frequencies above the Max frequency cap are greyed out.

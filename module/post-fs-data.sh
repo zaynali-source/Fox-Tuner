@@ -7,6 +7,9 @@ if [ -f "$DATA/boot_guard" ]; then   # previous boot never finished -> skip once
   echo "previous boot did not complete -> overlay skipped $(date)" > "$DATA/bundle.log"
   echo "skipped (boot guard)" > "$DATA/bundle.stat"; rm -f "$DATA/boot_guard"; exit 0
 fi
+if [ -d /data/adb/modules/fox_overlay ] && [ ! -e /data/adb/modules/fox_overlay/disable ] && [ ! -e /data/adb/modules/fox_overlay/remove ]; then
+  echo "yielded to FoxOverlay" > "$DATA/bundle.stat"; echo "FoxOverlay module active -> helper overlay not mounted $(date)" > "$DATA/bundle.log"; exit 0
+fi
 touch "$DATA/boot_guard"
 if grep -q '^opt.bundle=0' "$DATA/profiles.conf" 2>/dev/null; then echo "disabled in app" > "$DATA/bundle.stat"; exit 0; fi
 sh "$MODDIR/bin/bundle.sh" mount
