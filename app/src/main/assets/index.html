@@ -267,9 +267,9 @@ function render(){
 
   const body = `
     <div class="seg" id="modes">${MODES.map(([id,l]) => `<button class="${id===m?'on':''}" data-mode="${id}">${l}</button>`).join('')}</div>
-    ${section('threshold','Frequency threshold',chipsAll(THR[m].map(v=>[v,v]),`${m}.threshold`,'thr'))}
+    ${section('threshold','Frequency threshold',chipsAll(THR[m].map(v=>[v,v]),`${m}.threshold`,'thr')+'<div class="cfl">Ulq controls: up rate limit (250 x T), down rate limit (2000 + 1000 x T) and Target load shift (base + T/5). Those options below are locked while this is on. Turn it off to set them yourself.</div>')}
     <div class="tabs" id="cl">${R.map(r => `<button class="${r===cluster?'on':''}" data-cluster="${r}">${CL.find(c=>c[0]===r)[1]}</button>`).join('')}</div>
-    ${section('priority','Cluster priority',chips(PR,S[`${m}.${cluster}.prio`],v=>`data-k="${m}.${cluster}.prio" data-v="${v}"`)+`<div class="sub">Minimum online cores</div>`+chips([['','Auto'],...Array.from({length:Math.min(+S[`hw.${cluster}.cpus`]||4,4)+1},(_,i)=>[i,i]).filter(x=>x[0]>0||cluster!=='little')].slice(0,6),S[`${m}.${cluster}.minc`]??'',v=>`data-k="${m}.${cluster}.minc" data-v="${v}"`)+(noCC?`<div class="warn">No core_ctl for this cluster on this kernel.</div>`:''))}
+    ${section('priority','Cluster priority',chips(PR,S[`${m}.${cluster}.prio`],v=>`data-k="${m}.${cluster}.prio" data-v="${v}"`)+`<div class="sub">Minimum online cores</div>`+chips([['','Auto'],...Array.from({length:Math.min(+S[`hw.${cluster}.cpus`]||4,4)+1},(_,i)=>[i,i]).filter(x=>x[0]>0||cluster!=='little')].slice(0,6),S[`${m}.${cluster}.minc`]??'',v=>`data-k="${m}.${cluster}.minc" data-v="${v}"`)+(noCC?`<div class="warn">No core_ctl for this cluster on this kernel.</div>`:'')+'<div class="cfl">Ulq controls: core_ctl min cores, max cores and busy_up_thres for this cluster. CPUs it parks are locked in Cpuset. Turn it off to set them yourself.</div>')}
     ${S[`hw.${cluster}.boost`]==='1' ? section('boost','Frequency boost %',chipsAll([0,3,5,10,15,20].map(v=>[v,v]),`${m}.${cluster}.boost`,'bst')) : ''}
     ${section('freq','Max frequency',chipsAll(winCpu(cluster,m).map(f=>[f,ghz(f)]),`${m}.${cluster}.max`,'cpu'))}
     ${section('gov','Governor · WALT',(()=>{ const k=x=>`${m}.${cluster}.${x}`, w=S[`hw.${cluster}.walt`]==='0' ? '<div class="warn">WALT tunables not found for this cluster.</div>' : ''; return w + `<div class="sub" style="margin-top:0">Hispeed frequency</div>${chipsAll(winHs(cluster),k('hsfreq'),'hsf')}<div class="sub">Hispeed load</div>${chipsAll([80,85,90,95].map(v=>[v,v]),k('hsload'),'hsl')}<div class="sub">RTG boost frequency</div>${chipsAll([['','Auto'],[0,'Off'],...winHs(cluster)],k('rtg'),'hsf')}<div class="sub">Target load shift</div>${chipsAll([2,3,4,5].map(v=>[v,v]),k('tls'),'tls')}` + (S[`hw.${cluster}.tlt`]==='0' ? '' : `<div class="sub">Target load thresh</div>${chipsAll([['','Auto'],[25,25],[50,50],[75,75]],k('tlt'),'tlt')}`); })())}
@@ -434,7 +434,7 @@ $('app').addEventListener('click', e => {
   if(t.dataset.cluster){ cluster = t.dataset.cluster; render(); return; }
   if(t.dataset.all){ allSheet(t.dataset.all,t.dataset.kind); return; }
   if(t.dataset.k){ setKey(t.dataset.k,t.dataset.v); patch(t.dataset.k); if(REFLOW.test(t.dataset.k)) render(); return; }
-  if(t.dataset.sec){ const k = t.dataset.sec, cur = k==='touch' ? S['sec.touch']==='1' : S[`sec.${k}`]!=='0'; setKey(`sec.${k}`, cur?'0':'1'); t.classList.toggle('on',!cur); const sc = t.closest('.sec'); if(sc) sc.classList.toggle('off',cur); if(k==='priority'||k==='freq') render(); return; }
+  if(t.dataset.sec){ const k = t.dataset.sec, cur = k==='touch' ? S['sec.touch']==='1' : S[`sec.${k}`]!=='0'; setKey(`sec.${k}`, cur?'0':'1'); t.classList.toggle('on',!cur); const sc = t.closest('.sec'); if(sc) sc.classList.toggle('off',cur); if(k==='priority'||k==='freq'||k==='threshold') render(); return; }
   if(t.dataset.cs){
     const g = t.dataset.cs, i = +t.dataset.cpu; let sel = csSel(g);
     sel = sel.includes(i) ? sel.filter(x=>x!==i) : [...sel,i].sort((a,b)=>a-b);
