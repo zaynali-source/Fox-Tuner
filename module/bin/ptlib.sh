@@ -314,8 +314,6 @@ apply_walt() { # policy role threshold   (rate limits + auto load shift)
   wr "$w/down_rate_limit_us" $((2000 + t * 1000))
   tl=$((4 + t / 5)); [ "$tl" -gt 10 ] && tl=10
   wr "$w/target_load_shift" "$tl"
-  wr "$w/rtg_boost_freq" "$( [ "$2" = little ] && echo 595200 || echo 0 )"
-  wr "$w/pl" 0
 }
 
 apply_gov() { # policy role hispeed_freq hispeed_load target_load_shift target_load_thresh
@@ -331,6 +329,9 @@ apply_gov() { # policy role hispeed_freq hispeed_load target_load_shift target_l
   wr "$w/hispeed_load" "$hl"
   if [ -n "$5" ]; then tl=$(( $5 + ${GT:-0} / 5 )); [ "$tl" -gt 10 ] && tl=10; [ "$tl" -lt 0 ] && tl=0; wr "$w/target_load_shift" "$tl"; fi
   [ -n "$6" ] && wr "$w/target_load_thresh" "$6"
+  # rtg boost + pl belong to the governor section only (ROM [governor] defaults), so Threshold never fights it
+  wr "$w/rtg_boost_freq" "${rtg:-$( [ "$2" = little ] && echo 595200 || echo 0 )}"
+  wr "$w/pl" 0
 }
 
 apply_gpu() { # max(Hz) min(Hz)
@@ -377,7 +378,7 @@ apply_mode() { # mode
     fi
     if sec_on priority && [ -n "$prio" ]; then SEC=priority; apply_prio "$pol" "$prio" "$minc"; fi
     if sec_on threshold; then SEC=threshold; apply_walt "$pol" "$role" "$t"; fi
-    if sec_on gov; then SEC=gov; apply_gov "$pol" "$role" "$hsf" "$hsl" "$tls" "$tlt"; [ -n "$rtg" ] && wr "$CPUFREQ/$pol/walt/rtg_boost_freq" "$rtg"; [ -n "$bst" ] && [ -e "$CPUFREQ/$pol/walt/boost" ] && wr "$CPUFREQ/$pol/walt/boost" "$bst"; fi
+    if sec_on gov; then SEC=gov; apply_gov "$pol" "$role" "$hsf" "$hsl" "$tls" "$tlt"; [ -n "$bst" ] && [ -e "$CPUFREQ/$pol/walt/boost" ] && wr "$CPUFREQ/$pol/walt/boost" "$bst"; fi
   done
   sec_on gov || restore_sec gov
   sec_on freq || restore_sec freq

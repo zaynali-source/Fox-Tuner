@@ -27,3 +27,7 @@ Author: Zane
 - Governor load shift now only stacks on the threshold's while Threshold is on (was adding it even when off).
 - Helper's PowerHAL overlay yields automatically when the FoxOverlay module is active (both mount the same files); the toggle is greyed with the reason.
 - Governor hispeed frequencies above the Max frequency cap are greyed out.
+
+## v2.3
+- RTG boost frequency and pl are now written only by the Governor section (ROM defaults), so Threshold never overwrites them.
+- CPUs that Cluster priority parks (Minimal) are greyed out in Cpuset, with the reason shown.
