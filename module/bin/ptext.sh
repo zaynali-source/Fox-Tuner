@@ -59,17 +59,13 @@ game_apply() { # pkg
   esac
   touch_commit 1 "$ex" "$xp" "$t2" "$t3" "$t4" "$t5" "$t7" "$(cur_rotation)"
   tn=$(touch_node)
-  if [ -n "$tn" ]; then
-    [ -f "$DATA/game_bump" ] || rd "$tn" > "$DATA/game_bump"
-    echo "$sup" > "$tn" 2>/dev/null
-  fi
+  if [ -n "$tn" ]; then echo "$sup" > "$tn" 2>/dev/null; echo "$sup" > "$DATA/touch_want"; fi
   echo "$p" > "$DATA/game_active"
   log "game on: $p (mode=$mode)"
 }
 game_revoke() {
   touch_commit 0
   rm -f "$DATA/game_active"
-  if [ -f "$DATA/game_bump" ]; then tn=$(touch_node); [ -n "$tn" ] && echo "$(cat "$DATA/game_bump")" > "$tn"; rm -f "$DATA/game_bump"; fi
   if [ -f "$DATA/game_prev" ]; then
     read -r pm < "$DATA/game_prev"; rm -f "$DATA/game_prev"
     apply_mode "$pm" >/dev/null

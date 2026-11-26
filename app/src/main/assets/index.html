@@ -36,6 +36,13 @@ button:active{opacity:.7}
 .chips{display:flex;gap:6px}
 .chip{flex:1 1 0;min-width:0;height:40px;border-radius:20px;background:var(--s2);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}
 .chip.on{background:var(--a);color:var(--at);font-weight:600}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{position:relative;text-align:left;border-radius:30px;background:var(--s);padding:20px 18px 18px;min-height:150px;display:flex;flex-direction:column;gap:6px;color:var(--t)}
+.tile b{font-size:19px;font-weight:600;margin-top:auto}.tile small{font-size:13px;color:var(--m);line-height:1.3}
+.tile.on{background:var(--a);color:var(--at)}.tile.on small{color:#555}
+.tile .tn{position:absolute;right:12px;top:12px;width:40px;height:40px;border-radius:20px;display:grid;place-items:center;background:rgba(127,127,127,.18)}
+.tile .tn i{display:block;width:16px;height:2px;background:currentColor;border-radius:1px;box-shadow:0 5px 0 currentColor,0 -5px 0 currentColor}
+.tile em{font-style:normal;font:11px var(--mono);letter-spacing:.12em;margin-top:2px}
 .chip:disabled{opacity:.28;pointer-events:none}
 .cfl{font-size:12px;color:var(--m);margin:6px 2px 0;line-height:1.4}
 .row.dis{opacity:.45}.row.dis .sw{pointer-events:none}
@@ -94,7 +101,7 @@ body{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
 <div class="top"><h1>Fox Tuner</h1><i class="dot" id="dot"></i><button class="sw" id="master" aria-label="Apply profiles"></button></div>
 <div id="ban"></div>
 <main id="app" class="f"></main>
-<nav id="nav"><button class="on" data-view="prof">Profiles</button><button data-view="game">Game</button><button data-view="disp">Display</button><button data-view="more">More</button></nav>
+<nav id="nav"><button class="on" data-view="prof">Profiles</button><button data-view="kern">Kernel</button><button data-view="game">Game</button><button data-view="more">More</button></nav>
 <div class="scrim" id="scrim"><div class="sheet" id="sheet"></div></div>
 <div class="toast" id="toast"></div>
 
@@ -178,8 +185,9 @@ function chipsAll(items,key,kind){
   if(!it.some(x => String(x[0])===sel)) it = [...it.slice(0,it.length-1),[sel,fmtV(kind,sel)]];
   let capv = 0, nd = 0;
   if(kind==='hsf' && key.endsWith('.hsfreq') && S['sec.freq']!=='0') capv = +S[key.replace(/\.hsfreq$/,'.max')] || 0;
-  const dis = v => (capv && v!=='' && +v > capv) ? (nd++, ' disabled') : '';
-  const hint = () => nd ? `<div class="cfl">Frequencies above the Max frequency cap are greyed out. Raise the cap or turn off Max frequency to use them.</div>` : '';
+  const tlsLock = kind==='tls' && S['sec.threshold']!=='0';
+  const dis = v => (tlsLock || (capv && v!=='' && +v > capv)) ? (nd++, ' disabled') : '';
+  const hint = () => tlsLock ? `<div class="cfl">Load shift is controlled by Frequency threshold (Ulq formula: base + threshold/5). Turn off Frequency threshold to set it here.</div>` : nd ? `<div class="cfl">Frequencies above the Max frequency cap are greyed out. Raise the cap or turn off Max frequency to use them.</div>` : '';
   const out = `<div class="chips">${it.map(([v,l]) => `<button class="chip${String(v)===sel?' on':''}"${dis(v)} data-k="${key}" data-v="${v}">${l}</button>`).join('')}<button class="chip more" data-all="${key}" data-kind="${kind}" aria-label="All values">⋯</button></div>`;
   return out + hint();
 }
@@ -267,6 +275,7 @@ function render(){
     ${section('gov','Governor · WALT',(()=>{ const k=x=>`${m}.${cluster}.${x}`, w=S[`hw.${cluster}.walt`]==='0' ? '<div class="warn">WALT tunables not found for this cluster.</div>' : ''; return w + `<div class="sub" style="margin-top:0">Hispeed frequency</div>${chipsAll(winHs(cluster),k('hsfreq'),'hsf')}<div class="sub">Hispeed load</div>${chipsAll([80,85,90,95].map(v=>[v,v]),k('hsload'),'hsl')}<div class="sub">RTG boost frequency</div>${chipsAll([['','Auto'],[0,'Off'],...winHs(cluster)],k('rtg'),'hsf')}<div class="sub">Target load shift</div>${chipsAll([2,3,4,5].map(v=>[v,v]),k('tls'),'tls')}` + (S[`hw.${cluster}.tlt`]==='0' ? '' : `<div class="sub">Target load thresh</div>${chipsAll([['','Auto'],[25,25],[50,50],[75,75]],k('tlt'),'tlt')}`); })())}
     ${section('gpu','GPU',gOk ? `<div class="sub" style="margin-top:0">Maximum · MHz</div>${chipsAll(winGpu('max',m).map(f=>[f*1e6,f]),`${m}.gpu.max`,'gmax')}<div class="sub">Minimum · MHz</div>${chipsAll(winGpu('min',m).map(f=>[f*1e6,f]),`${m}.gpu.min`,'gmin')}` : '<div class="warn">GPU devfreq not found.</div>')}
     ${section('cpuset','Cpuset',S['hw.cs']==='0' ? '<div class="warn">cpuset not found on this ROM.</div>' : '<button class="lnk" id="csReset">Reset</button>'+csGroups().map(g => { const sel = csSel(g); return `<div class="sub">${g[0].toUpperCase()+g.slice(1)}</div><div class="cpus">${Array.from({length:ncpu()},(_,i)=>`<button class="cpu${sel.includes(i)?' on':''}"${PK.has(i)?' disabled':''} data-cs="${g}" data-cpu="${i}">${i}</button>`).join('')}</div>`; }).join('')+(PK.size?'<div class="cfl">Greyed CPUs are parked by Cluster priority (Minimal). Raise the priority or turn off Cluster priority to use them.</div>':''))}
+    ${section('touch','Touch sampling',(S['hw.touch']==='1'?'':'<div class="warn">bump_sample_rate not found on this kernel.</div>')+chips([[0,'Default'],[1,'Boosted']],S[`${m}.touch`]??'0',v=>`data-k="${m}.touch" data-v="${v}"`))}
     <section class="sec${S['sec.thermal']==='0'?' off':''}"><div class="hd"><span>Thermal</span><button class="sw${S['sec.thermal']==='0'?'':' on'}" data-sec="thermal" aria-label="Thermal"></button></div>
       <button class="row body" id="thBtn" style="padding:0"><span class="g"><b>Thermal profile</b><small>${thSub}</small></span><span style="color:var(--m)">›</span></button></section>
 `;
@@ -279,6 +288,7 @@ function render(){
     <section class="sec"><div class="hd"><span>Backup</span><small style="color:var(--m);font-size:11px">${bk.t}</small></div>
       <div class="bk"><button class="btn" id="bkNow">Back up</button><button class="btn" id="bkRes"${bk.ok?'':' style="opacity:.35"'}>Restore</button></div>
       <div class="row" style="margin-top:8px"><span class="g"><b>Auto backup</b><small>${bk.p||'/sdcard/ProfilesTuner'}</small></span><button class="sw${opt('autobackup','1')?' on':''}" data-opt="autobackup"></button></div></section>
+    <section class="sec"><div class="hd"><span>Display</span></div><button class="row" data-view="disp" style="background-image:none"><span class="g"><b>Resolution &amp; DPI</b><small>Change screen size and density</small></span><span style="color:var(--m)">›</span></button></section>
     <section class="sec"><div class="hd"><span>Touch</span></div><button class="row" id="tTest" style="background-image:none"><span class="g"><b>Touch test</b><small>Measure touch sampling rate</small></span><span style="color:var(--m)">›</span></button></section>
     ${tileCard()}
     <section class="sec"><div class="hd"><span>Reset</span></div>
@@ -287,9 +297,15 @@ function render(){
     <section class="sec"><div class="hd"><span>System</span></div>
       <div class="tags" style="padding-top:0">${tag(true,'CPU caps')}${tag(R.every(r=>S[`hw.${r}.corectl`]==='1'),'Priority')}${tag(R.some(r=>S[`hw.${r}.walt`]==='1'),'Governor')}${tag(gOk,'GPU')}${tag(S['hw.cs']==='1','Cpuset')}${tag(S['hw.sconfig']==='1','Thermal')}${tag(S['hw.touch']==='1','Touch')}${tag(S['hw.ulq']==='1','Ulquiorra')}</div>
       <div class="sub" style="margin:8px 0 0">${S['hw.model']||''} ${S['hw.device']||''}</div></section>`;
+  const TD = {battery:'Reduced peak frequency',normal:'Balanced adaptive limits',performance:'Higher available headroom',extreme:'Highest detected headroom'};
+  const prof = `<section class="sec"><div class="hd"><span>Performance profile</span></div>
+    <div class="sub" style="margin:0 0 12px">Tap a profile to use it. Tap the lines to configure it.</div>
+    <div class="tiles">${MODES.map(([id,l]) => `<button class="tile${id===m?' on':''}" data-mode="${id}"><span class="tn" data-tune="${id}"><i></i></span><b>${l}</b><small>${TD[id]}</small>${id===m?'<em>ACTIVE</em>':''}</button>`).join('')}</div></section>
+    <section class="sec"><div class="hd"><span>Device</span></div><div class="row" style="background-image:none"><span class="g"><b>${S['hw.model']||''} ${S['hw.device']||''}</b><small>${R.map(r=>CL.find(c=>c[0]===r)[1]+' '+ghz(S[`${m}.${r}.max`]||0)).join(' · ')}</small></span></div></section>
+    <section class="sec"><div class="hd"><span>System status</span></div><div class="tags" style="padding-top:0">${tag(true,'CPU caps')}${tag(R.every(r=>S[`hw.${r}.corectl`]==='1'),'Priority')}${tag(R.some(r=>S[`hw.${r}.walt`]==='1'),'Governor')}${tag(gOk,'GPU')}${tag(S['hw.cs']==='1','Cpuset')}${tag(S['hw.sconfig']==='1','Thermal')}${tag(S['hw.touch']==='1','Touch')}</div></section>`;
   const keepOpen = document.querySelector('details')?.open;
   const vt = '';
-  $('app').innerHTML = vt + (view==='disp' ? dispHtml() : view==='game' ? gameHtml() : view==='more' ? more : body);
+  $('app').innerHTML = vt + (view==='disp' ? dispHtml() : view==='game' ? gameHtml() : view==='more' ? more : view==='kern' ? body : prof);
   if(keepOpen) document.querySelector('details').open = true;
 }
 
@@ -324,6 +340,7 @@ function thermalSheet(){
 
 
 /* ---------- Game Space ---------- */
+const REFLOW = /\.(prio|max|hsfreq|minc)$/;
 const GM = [['follow','Follow'],['battery','Battery'],['normal','Normal'],['performance','Perf'],['extreme','Extreme']];
 const TUNE = [['t2','Swipe continuity',[1,2,3,4,5]],['t3','Jitter smoothing',[1,2,3,4,5]],['t4','Swipe sensitivity',[1,2,3,4,5]],['t5','Rapid tap accuracy',[1,2,3,4,5]],['t7','Palm rejection',[0,1,2,3]]];
 const TDEFV = {t2:'3',t3:'3',t4:'3',t5:'3',t7:'2'};
@@ -360,24 +377,17 @@ async function addSheet(){
 }
 /* touch test: counts real pointer events per second (coalesced) */
 function touchSheet(){
-  sheet(`<h4>Touch test</h4><p>Drag on the pad. Shows how many touch samples per second reach the screen.</p>
-    <div id="tpad" style="touch-action:none;height:220px;border-radius:24px;background:var(--s2);position:relative;overflow:hidden"><canvas id="tcv" style="position:absolute;inset:0;width:100%;height:100%"></canvas><div style="position:absolute;left:16px;top:12px"><div class="big" id="thz">0</div><div class="sub" style="margin:0">Hz now · <span id="tmx">0</span> max</div></div></div>
+  sheet(`<h4>Touch test</h4><p>Drag your finger on the pad. Shows the real touch samples per second from the panel, not the screen refresh.</p>
+    <div id="tpad" style="height:200px;border-radius:24px;background:var(--s2);position:relative;overflow:hidden"><div style="position:absolute;left:16px;top:12px"><div class="big" id="thz">0</div><div class="sub" style="margin:0">Hz · <span id="tmx">0</span> max</div></div></div>
     <div class="row" style="margin-top:8px"><span class="g"><b>Game mode</b><small>touch_dev/game_mode</small></span><button class="sw" data-tt="game"></button></div>
-    <div class="row"><span class="g"><b>Super report rate</b><small>bump_sample_rate · 500 Hz</small></span><button class="sw${S['hw.touch.cur']==='1'?' on':''}" data-tt="super"></button></div>
+    <div class="row"><span class="g"><b>Super report rate</b><small>bump_sample_rate · 500 Hz</small></span><button class="sw" data-tt="super"></button></div>
     <div class="act"><button class="btn p" id="close">Done</button></div>`);
-  const pad = $('tpad'), cv = $('tcv'), cx = cv.getContext('2d'); let cnt = 0, mx = 0, last = performance.now(), hz = 0;
-  const fit = () => { cv.width = cv.clientWidth; cv.height = cv.clientHeight; }; fit();
-  pad.addEventListener('pointermove', e => {
-    const ev = e.getCoalescedEvents ? e.getCoalescedEvents() : [e]; cnt += Math.max(1,ev.length);
-    const r = cv.getBoundingClientRect(); cx.fillStyle = '#fff';
-    (ev.length?ev:[e]).forEach(x => { cx.beginPath(); cx.arc(x.clientX-r.left, x.clientY-r.top, 3, 0, 6.3); cx.fill(); });
-  });
-  pad.addEventListener('pointerdown', () => { cx.clearRect(0,0,cv.width,cv.height); });
+  let mx = 0;
   const iv = setInterval(() => {
     if(!$('tpad')){ clearInterval(iv); return; }
-    const n = performance.now(); hz = Math.round(cnt*1000/(n-last)); cnt = 0; last = n;
-    if(hz>mx) mx = hz; $('thz').textContent = hz; $('tmx').textContent = mx;
-  }, 500);
+    let n = 0; try{ n = ksu.touchHz(); }catch(e){}
+    if(n>mx) mx = n; $('thz').textContent = n; $('tmx').textContent = mx;
+  }, 350);
 }
 
 /* ---------- events (delegated) ---------- */
@@ -389,6 +399,8 @@ function setView(v){
 $('nav').addEventListener('click', e => { const b = e.target.closest('button'); if(b && b.dataset.view && b.dataset.view!==view){ haptic(); setView(b.dataset.view); } });
 $('master').addEventListener('click', () => { const nv = (S['opt.enabled']??'1')==='1' ? '0' : '1'; S['opt.enabled'] = nv; render(); run(()=>ctl('opt','enabled',nv)); toast(nv==='1'?'Profiles on':'Profiles paused'); });
 $('app').addEventListener('click', e => {
+  const tn = e.target.closest('[data-tune]');
+  if(tn){ haptic(); const id = tn.dataset.tune; if(id!==S.active){ flush(); S.active = id; run(()=>ctl('mode',id)); } setView('kern'); return; }
   const t = e.target.closest('button'); if(!t) return;
   haptic();
   if(t.dataset.tm){
@@ -421,8 +433,8 @@ $('app').addEventListener('click', e => {
   if(t.dataset.mode){ flush(); S.active = t.dataset.mode; render(); run(()=>ctl('mode',t.dataset.mode)); return; }
   if(t.dataset.cluster){ cluster = t.dataset.cluster; render(); return; }
   if(t.dataset.all){ allSheet(t.dataset.all,t.dataset.kind); return; }
-  if(t.dataset.k){ setKey(t.dataset.k,t.dataset.v); patch(t.dataset.k); return; }
-  if(t.dataset.sec){ const k = t.dataset.sec, cur = k==='touch' ? S['sec.touch']==='1' : S[`sec.${k}`]!=='0'; setKey(`sec.${k}`, cur?'0':'1'); t.classList.toggle('on',!cur); const sc = t.closest('.sec'); if(sc) sc.classList.toggle('off',cur); return; }
+  if(t.dataset.k){ setKey(t.dataset.k,t.dataset.v); patch(t.dataset.k); if(REFLOW.test(t.dataset.k)) render(); return; }
+  if(t.dataset.sec){ const k = t.dataset.sec, cur = k==='touch' ? S['sec.touch']==='1' : S[`sec.${k}`]!=='0'; setKey(`sec.${k}`, cur?'0':'1'); t.classList.toggle('on',!cur); const sc = t.closest('.sec'); if(sc) sc.classList.toggle('off',cur); if(k==='priority'||k==='freq') render(); return; }
   if(t.dataset.cs){
     const g = t.dataset.cs, i = +t.dataset.cpu; let sel = csSel(g);
     sel = sel.includes(i) ? sel.filter(x=>x!==i) : [...sel,i].sort((a,b)=>a-b);

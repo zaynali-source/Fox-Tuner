@@ -6,6 +6,7 @@ import android.view.HapticFeedbackConstants;
 import android.os.Bundle;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
+import android.view.MotionEvent;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
@@ -31,6 +32,10 @@ import java.util.regex.Pattern;
  */
 public class MainActivity extends Activity {
     private WebView web;
+    private volatile int touchHz = 0;
+    private volatile long touchLast = 0;
+    private long wStart = 0;
+    private int wCnt = 0;
     private static final Set<String> GAMES = new HashSet<>(java.util.Arrays.asList(
         "com.wanmei.hotta.wm", "com.levelinfinite.dfm", "com.miHoYo.GenshinImpact", "com.miHoYo.Yuanshen",
         "com.HoYoverse.hkrpgoversea", "com.miHoYo.hkrpg", "com.HoYoverse.Nap", "com.miHoYo.Nap",
@@ -55,6 +60,18 @@ public class MainActivity extends Activity {
         s.setAllowContentAccess(false);
         s.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
+        // real touch rate: count every MotionEvent sample (history included), WebView pointer events are frame-limited
+        web.setOnTouchListener((v, ev) -> {
+            int a = ev.getActionMasked();
+            if (a == MotionEvent.ACTION_MOVE) {
+                long now = ev.getEventTime();
+                if (wStart == 0) wStart = now;
+                wCnt += ev.getHistorySize() + 1;
+                touchLast = android.os.SystemClock.uptimeMillis();
+                if (now - wStart >= 400) { touchHz = (int) (wCnt * 1000L / (now - wStart)); wStart = now; wCnt = 0; }
+            } else if (a == MotionEvent.ACTION_UP || a == MotionEvent.ACTION_CANCEL) { wStart = 0; wCnt = 0; }
+            return false;
+        });
         web.setWebViewClient(new WebViewClient());
         web.addJavascriptInterface(new Bridge(), "ksu");
         web.loadUrl("file:///android_asset/index.html");
@@ -71,6 +88,9 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void setTileModes(String csv) { FoxTunerTileService.saveCsv(MainActivity.this, csv); }
+
+        @JavascriptInterface
+        public int touchHz() { return android.os.SystemClock.uptimeMillis() - touchLast > 700 ? 0 : touchHz; }
 
         @JavascriptInterface
         public String apps() {

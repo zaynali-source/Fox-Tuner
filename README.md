@@ -31,3 +31,9 @@ Author: Zane
 ## v2.3
 - RTG boost frequency and pl are now written only by the Governor section (ROM defaults), so Threshold never overwrites them.
 - CPUs that Cluster priority parks (Minimal) are greyed out in Cpuset, with the reason shown.
+
+## v2.4
+- "Auto" now means the ROM (Ulq) value for that mode (cap, priority, min cores, hispeed, load shift, boost, GPU, threshold).
+- Per-profile touch sampling is a plain Default/Boosted value written (and verified) on every profile apply. No background timer.
+- Touch test reads the real MotionEvent sample rate (including batched history) instead of the frame-limited pointer events.
+- Greyed-out conflicts refresh immediately when Priority / Max frequency / Governor values change.

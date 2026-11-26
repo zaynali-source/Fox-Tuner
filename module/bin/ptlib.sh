@@ -27,7 +27,7 @@ sec.priority=1
 sec.freq=1
 sec.gpu=1
 sec.thermal=1
-sec.touch=0
+sec.touch=1
 sec.gov=1
 sec.cpuset=0
 thermal.normal=0
@@ -100,7 +100,7 @@ normal.prime.minc=0
 normal.gpu.max=835000000
 normal.gpu.min=255000000
 performance.threshold=3
-performance.touch=0
+performance.touch=1
 performance.thermal=nolimits
 performance.little.prio=2
 performance.little.max=2016000
@@ -123,7 +123,7 @@ performance.prime.boost=15
 performance.gpu.max=900000000
 performance.gpu.min=353000000
 extreme.threshold=0
-extreme.touch=0
+extreme.touch=1
 extreme.thermal=nolimits
 extreme.little.prio=3
 extreme.little.max=2016000
@@ -159,7 +159,7 @@ $k
 "*) ;; *) echo "$k=$v" ;; esac; done)
 [ -n "$MISS" ] && echo "$MISS" >> "$CONF"
 # v2.1: thermal indices now match the ROM's own list (verified from its Parts app)
-if ! grep -qE '^opt.migr=[23]$' "$CONF"; then
+if ! grep -qE '^opt.migr=[234]$' "$CONF"; then
   sed -i -e '/^thermal\./d' -e '/^opt\.migr=/d' -e 's/\.thermal=tgame$/.thermal=mgame/' "$CONF"
   hc_all | grep '^thermal\.' >> "$CONF"
   _ok=" normal huanji nolimits class0 arvr navigation video videochat camera 4k mgame highfps default "
@@ -173,6 +173,11 @@ if ! grep -q '^opt.migr=3$' "$CONF"; then
   sed -i -E -e '/^(battery|normal|performance|extreme)\./d' -e '/^opt\.migr=/d' "$CONF"
   hc_all | grep -E '^(battery|normal|performance|extreme)\.' >> "$CONF"
   echo "opt.migr=3" >> "$CONF"
+fi
+if ! grep -q '^opt.migr=4$' "$CONF"; then   # per-profile touch sampling is a plain Default/Boosted choice again
+  sed -i -E -e '/^sec\.touch=/d' -e '/^(battery|normal|performance|extreme)\.touch=/d' -e '/^opt\.migr=/d' "$CONF"
+  hc_all | grep -E '^(sec\.touch|(battery|normal|performance|extreme)\.touch)=' >> "$CONF"
+  echo "opt.migr=4" >> "$CONF"
 fi
 
 log() { echo "$(date +%H:%M:%S) $*" >> "$LOG" 2>/dev/null; }
@@ -367,12 +372,20 @@ apply_mode() { # mode
   load_secs
   eval "$(grep "^$m\." "$CONF" | sed "s/^$m\.//; s/\./_/g; s/=\(.*\)\$/=\"\1\"/; s/^/M_/")"
   : > "$DATA/expected"
+  eval "$(hc_all | grep "^$m\." | sed "s/^$m\.//; s/\./_/g; s/=\(.*\)\$/=\"\1\"/; s/^/D_/")"
+  [ -n "$M_threshold" ] || M_threshold=$D_threshold
+  [ -n "$M_gpu_max" ] || M_gpu_max=$D_gpu_max
+  [ -n "$M_gpu_min" ] || M_gpu_min=$D_gpu_min
   t=${M_threshold:-0}
   # the governor's own load shift stacks on the threshold's, so it only counts while Threshold is on
   GT=$t; sec_on threshold || GT=0
   clusters | while read role pol; do
     eval "cap=\$M_${role}_max; prio=\$M_${role}_prio; hsf=\$M_${role}_hsfreq; hsl=\$M_${role}_hsload; tls=\$M_${role}_tls; tlt=\$M_${role}_tlt; minc=\$M_${role}_minc; rtg=\$M_${role}_rtg; bst=\$M_${role}_boost"
     ROLE=$role
+    # "Auto" (empty) = the ROM's own value for this mode
+    for _f in max:cap prio:prio hsfreq:hsf hsload:hsl tls:tls minc:minc boost:bst; do
+      eval "[ -n \"\$${_f#*:}\" ] || ${_f#*:}=\$D_${role}_${_f%%:*}"
+    done
     if sec_on freq && [ -n "$cap" ]; then
       SEC=freq; apply_cap "$pol" "$cap" && echo "$pol=$cap" >> "$DATA/expected"
     fi
@@ -394,7 +407,11 @@ apply_mode() { # mode
     if [ -n "$ix" ]; then wr "$SCONFIG" "$ix"
     elif [ -n "$M_thermal" ] && [ "$M_thermal" != default ]; then log "thermal '$M_thermal' has no sconfig index"; fi
   else restore_sec thermal; fi
-  restore_sec touch
+  tn=$(touch_node)
+  if [ -n "$tn" ] && sec_on touch; then
+    SEC=touch; tv=${M_touch:-0}; echo "$tv" > "$DATA/touch_want"
+    wr "$tn" "$tv"; [ "$(rd "$tn")" = "$tv" ] || { sleep 1; echo "$tv" > "$tn" 2>/dev/null; }
+  else rm -f "$DATA/touch_want"; fi
   if sec_on cpuset && [ "$S_cpuset" = 1 ]; then SEC=cpuset; apply_cpuset; else restore_sec cpuset; fi
   SEC=
   echo "$m" > "$DATA/active"

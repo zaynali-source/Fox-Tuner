@@ -108,6 +108,12 @@ setq)
   cset "$1" "$2"
   case "$1" in game.*) [ -f "$DATA/ptd.reload" ] || : > "$DATA/ptd.reload" ;; esac
   echo ok ;;
+touch-hz)
+  # real touch report rate: count SYN_REPORT frames from the touchscreen for 2 s while the user drags
+  dev=$(getevent -pl 2>/dev/null | awk '/^add device/{d=$4} /ABS_MT_POSITION_X/{print d; exit}')
+  [ -n "$dev" ] || { echo "na"; exit 0; }
+  n=$(timeout 2 getevent -l "$dev" 2>/dev/null | grep -c SYN_REPORT)
+  echo $((n / 2)) ;;
 game-sync)
   daemon_sync; echo ok ;;
 game-remove)
