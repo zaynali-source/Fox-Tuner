@@ -386,6 +386,10 @@ apply_mode() { # mode
     for _f in max:cap prio:prio hsfreq:hsf hsload:hsl tls:tls minc:minc boost:bst; do
       eval "[ -n \"\$${_f#*:}\" ] || ${_f#*:}=\$D_${role}_${_f%%:*}"
     done
+    # the ROM daemon first makes sure the walt governor is active ([governor] name=walt)
+    if sec_on threshold || sec_on gov; then
+      case " $(rd "$CPUFREQ/$pol/scaling_available_governors") " in *" walt "*) [ "$(rd "$CPUFREQ/$pol/scaling_governor")" = walt ] || { SEC=gov; wr "$CPUFREQ/$pol/scaling_governor" walt; } ;; esac
+    fi
     if sec_on freq && [ -n "$cap" ]; then
       SEC=freq; apply_cap "$pol" "$cap" && echo "$pol=$cap" >> "$DATA/expected"
     fi

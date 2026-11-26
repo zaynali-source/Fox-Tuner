@@ -3,7 +3,7 @@ SKIPUNZIP=0
 DATA=/data/adb/profiles_tuner
 
 ui_print "*******************************************"
-ui_print "   Fox Tuner Helper v2.4"
+ui_print "   Fox Tuner Helper v2.5"
 ui_print "   Apply helper + PowerHAL powerhint overlay"
 ui_print "*******************************************"
 
