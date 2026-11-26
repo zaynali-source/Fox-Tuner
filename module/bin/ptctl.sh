@@ -1,12 +1,12 @@
 #!/system/bin/sh
 # Profiles Tuner - control API used by the WebUI and by you from a terminal.
 #   ptctl.sh get | mode <m> | set <key> <val> | opt <key> <val> | apply
-#            reset <m> | resetall | tmap <name> <idx> | detect | detect-status
+#            reset <m> | resetall | tmap <name> <idx> | game-remove <pkg> | touch game|super 0|1
 DIR=${0%/*}
 . "$DIR/ptlib.sh"
 
-ok_key() { echo "$1" | grep -Eq '^[a-z0-9._-]+$'; }
-ok_val() { echo "$1" | grep -Eq '^[a-z0-9._,-]*$'; }
+ok_key() { echo "$1" | grep -Eq '^[A-Za-z0-9._-]+$'; }
+ok_val() { echo "$1" | grep -Eq '^[A-Za-z0-9._,-]*$'; }
 
 cmd=$1; shift
 case "$cmd" in
@@ -41,6 +41,7 @@ get)
     echo "hw.$role.cur_max=$(rd "$d/scaling_max_freq")"
     echo "hw.$role.corectl=$([ -d "$SR/sys/devices/system/cpu/cpu$1/core_ctl" ] && echo 1 || echo 0)"
     echo "hw.$role.walt=$([ -d "$d/walt" ] && echo 1 || echo 0)"
+    echo "hw.$role.boost=$([ -e "$d/walt/boost" ] && echo 1 || echo 0)"
     echo "hw.$role.tlt=$([ -e "$d/walt/target_load_thresh" ] && echo 1 || echo 0)"
   done
   echo "hw.roles=$(echo "$CL" | cut -d' ' -f1 | tr '\n' ' ')"
@@ -55,6 +56,9 @@ get)
     done
     echo "hw.cs.groups=$gl"
   fi
+  echo "hw.tf=$([ -e "$TOUCHF" ] && echo 1 || echo 0)"
+  echo "hw.thp=$(thp_capable && [ -e "$THP" ] && echo 1 || echo 0)"
+  echo "game.on=$(rd "$DATA/game_active")"
   echo "svc=$([ -f "$DATA/ptd.pid" ] && kill -0 "$(cat "$DATA/ptd.pid")" 2>/dev/null && echo 1 || echo 0)"
   cat "$CONF"
   ;;
@@ -66,8 +70,9 @@ boot)
   # called by the helper at boot: apply once, start the watcher only if enabled
   rm -f "$DATA/disabled"
   [ "$(opt enabled 1)" = 0 ] && { : > "$DATA/disabled"; exit 0; }
+  rm -f "$DATA/game_prev" "$DATA/game_active"
   takeover; apply_mode "$(active_mode)" >/dev/null
-  if [ "$(opt watch 0)" = 1 ] && ! { [ -f "$DATA/ptd.pid" ] && kill -0 "$(cat "$DATA/ptd.pid")" 2>/dev/null; }; then (sh "$DIR/ptd.sh" >/dev/null 2>&1 &); fi
+  daemon_sync
   echo ok ;;
 backup)
   if [ "$1" = auto ] && [ "$(opt autobackup 1)" != 1 ]; then echo skipped; exit 0; fi
@@ -77,7 +82,7 @@ restore)
 backup-info)
   if [ -s "$BK" ]; then echo "path=$BK"; echo "size=$(wc -c < "$BK")"; echo "time=$(date -r "$BK" '+%d %b %Y, %H:%M' 2>/dev/null)"; else echo "none"; fi ;;
 mode)
-  m=$1; apply_mode "$m" && echo ok ;;
+  rm -f "$DATA/game_prev"; m=$1; apply_mode "$m" && echo ok ;;
 cycle)
   # one call for the QS tile: next enabled mode after the active one
   cur=$(active_mode); first=""; nx=""; found=0
@@ -87,26 +92,38 @@ cycle)
     [ "$m" = "$cur" ] && found=1
   done; unset IFS
   [ -z "$nx" ] && nx=$first
+  rm -f "$DATA/game_prev"
   apply_mode "$nx" >/dev/null && echo "ok $nx" || echo fail ;;
 apply)
   apply_mode "$(active_mode)" && echo ok ;;
 set)
   ok_key "$1" && ok_val "$2" || { echo "bad args"; exit 1; }
   cset "$1" "$2"
-  case "$1" in opt.*|thermal.*) echo ok ;; sec.*) apply_mode "$(active_mode)" >/dev/null; echo ok ;; *) apply_mode "$(active_mode)" >/dev/null; echo ok ;; esac
+  case "$1" in game.*) : > "$DATA/ptd.reload"; daemon_sync; echo ok ;; opt.*|thermal.*) echo ok ;; sec.*) apply_mode "$(active_mode)" >/dev/null; echo ok ;; *) apply_mode "$(active_mode)" >/dev/null; echo ok ;; esac
   ;;
 setq)
   ok_key "$1" && ok_val "$2" || { echo "bad args"; exit 1; }
-  cset "$1" "$2"; echo ok ;;
+  cset "$1" "$2"
+  case "$1" in game.*) [ -f "$DATA/ptd.reload" ] || : > "$DATA/ptd.reload" ;; esac
+  echo ok ;;
+game-sync)
+  daemon_sync; echo ok ;;
+game-remove)
+  ok_key "$1" || { echo "bad args"; exit 1; }
+  sed -i "/^game\.$1\./d" "$CONF"; : > "$DATA/ptd.reload"; echo ok ;;
+touch)
+  # touch game|super 0|1  (manual test switches, same nodes the ROM app uses)
+  case "$1" in
+    game) [ -e "$GMODE" ] && echo "$2" > "$GMODE" && echo ok || echo na ;;
+    super) tn=$(touch_node); [ -n "$tn" ] && echo "$2" > "$tn" && echo ok || echo na ;;
+    *) echo "bad args" ;;
+  esac ;;
 opt)
   ok_key "$1" && ok_val "$2" || { echo "bad args"; exit 1; }
   cset "opt.$1" "$2"
   if [ "$1" = enabled ]; then [ "$2" = 0 ] && : > "$DATA/disabled" || rm -f "$DATA/disabled"; fi
   [ "$1" = takeover ] && [ "$2" = 1 ] && takeover
-  if [ "$1" = watch ]; then
-    if [ "$2" = 1 ]; then (sh "$DIR/ptd.sh" >/dev/null 2>&1 &)
-    else kill "$(cat "$DATA/ptd.pid" 2>/dev/null)" 2>/dev/null; rm -f "$DATA/ptd.pid"; fi
-  fi
+  [ "$1" = watch ] && daemon_sync
   echo ok ;;
 tmap)
   ok_key "$1" && ok_val "$2" || { echo "bad args"; exit 1; }
@@ -128,24 +145,8 @@ resetall)
   hc_all | grep -E '^(battery|normal|performance|extreme)\.' >> "$CONF"
   apply_mode "$(active_mode)" >/dev/null
   echo ok ;;
-detect)
-  # Experimental: write sconfig 0..20 and look for the thermal conf name in logcat
-  rm -f "$DATA/detect.out"
-  (
-    for n in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-      logcat -c 2>/dev/null
-      wr "$SCONFIG" "$n"; sleep 2
-      nm=$(logcat -d 2>/dev/null | grep -o 'thermal-[a-z0-9-]*\.conf' | tail -1 | sed 's/^thermal-//; s/\.conf$//; s/^india-//')
-      echo "$n=$nm" >> "$DATA/detect.out"
-    done
-    echo done >> "$DATA/detect.out"
-    apply_mode "$(active_mode)" >/dev/null
-  ) >/dev/null 2>&1 &
-  echo started ;;
-detect-status)
-  cat "$DATA/detect.out" 2>/dev/null ;;
 *)
-  echo "usage: ptctl.sh get|mode|apply|boot|set|opt|tmap|reset|resetall|backup|restore|detect"; exit 1 ;;
+  echo "usage: ptctl.sh get|mode|apply|boot|set|opt|tmap|reset|resetall|backup|restore|game-remove|touch"; exit 1 ;;
 esac
 case "$cmd" in apply|mode|cycle|reset|resetall|resetcs|tmap|opt|set)
   [ "$(opt autobackup 1)" = 1 ] && do_backup >/dev/null 2>&1 ;;

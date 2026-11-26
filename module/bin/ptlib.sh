@@ -31,9 +31,18 @@ sec.touch=0
 sec.gov=1
 sec.cpuset=0
 thermal.normal=0
-thermal.highfps=6
-thermal.nolimits=10
+thermal.huanji=1
+thermal.nolimits=6
+thermal.class0=7
+thermal.arvr=9
+thermal.navigation=10
+thermal.video=11
+thermal.videochat=14
+thermal.camera=15
+thermal.4k=16
 thermal.mgame=19
+thermal.highfps=26
+game.master=0
 cs.background=0
 cs.camera-daemon=0,1,2,3,4,5,7
 cs.foreground=0,1,2,3,4,5
@@ -46,82 +55,96 @@ battery.threshold=6
 battery.touch=0
 battery.thermal=normal
 battery.little.prio=3
-battery.little.max=1708800
+battery.little.max=1478400
 battery.little.hsfreq=1113600
 battery.little.hsload=90
 battery.little.tls=4
-battery.big.prio=0
-battery.big.max=1708800
+battery.little.boost=0
+battery.big.prio=1
+battery.big.max=1824000
 battery.big.hsfreq=1190400
 battery.big.hsload=85
 battery.big.tls=4
-battery.prime.prio=3
-battery.prime.max=1459200
+battery.big.boost=3
+battery.prime.prio=0
+battery.prime.max=1651200
 battery.prime.hsfreq=1459200
 battery.prime.hsload=85
 battery.prime.tls=4
-battery.gpu.max=353000000
+battery.prime.boost=3
+battery.gpu.max=500000000
 battery.gpu.min=255000000
 normal.threshold=6
 normal.touch=0
-normal.thermal=nolimits
+normal.thermal=normal
 normal.little.prio=3
 normal.little.max=2016000
 normal.little.hsfreq=1113600
 normal.little.hsload=90
 normal.little.tls=4
+normal.little.boost=3
 normal.big.prio=2
-normal.big.max=1920000
+normal.big.max=2188800
 normal.big.hsfreq=1190400
 normal.big.hsload=85
 normal.big.tls=4
-normal.prime.prio=3
-normal.prime.max=2304000
+normal.big.boost=3
+normal.big.minc=3
+normal.prime.prio=2
+normal.prime.max=2150400
 normal.prime.hsfreq=1459200
 normal.prime.hsload=85
 normal.prime.tls=4
-normal.gpu.max=684000000
+normal.prime.boost=3
+normal.prime.minc=0
+normal.gpu.max=835000000
 normal.gpu.min=255000000
-performance.threshold=0
-performance.touch=1
-performance.thermal=highfps
-performance.little.prio=3
+performance.threshold=3
+performance.touch=0
+performance.thermal=nolimits
+performance.little.prio=2
 performance.little.max=2016000
 performance.little.hsfreq=1113600
 performance.little.hsload=90
 performance.little.tls=4
+performance.little.boost=12
 performance.big.prio=3
-performance.big.max=2073600
+performance.big.max=2361600
 performance.big.hsfreq=1190400
 performance.big.hsload=85
 performance.big.tls=4
+performance.big.boost=18
 performance.prime.prio=3
-performance.prime.max=2304000
+performance.prime.max=2668800
 performance.prime.hsfreq=1459200
 performance.prime.hsload=85
 performance.prime.tls=4
-performance.gpu.max=736000000
+performance.prime.boost=15
+performance.gpu.max=900000000
 performance.gpu.min=353000000
 extreme.threshold=0
-extreme.touch=1
+extreme.touch=0
 extreme.thermal=nolimits
 extreme.little.prio=3
 extreme.little.max=2016000
 extreme.little.hsfreq=1113600
 extreme.little.hsload=90
 extreme.little.tls=4
-extreme.big.prio=1
-extreme.big.max=2572800
+extreme.little.boost=10
+extreme.big.prio=3
+extreme.big.max=2803200
 extreme.big.hsfreq=1190400
 extreme.big.hsload=85
 extreme.big.tls=4
+extreme.big.boost=15
 extreme.prime.prio=3
-extreme.prime.max=2668800
+extreme.prime.max=3014400
 extreme.prime.hsfreq=1459200
 extreme.prime.hsload=85
 extreme.prime.tls=4
-extreme.gpu.max=900000000
-extreme.gpu.min=255000000
+extreme.prime.boost=20
+extreme.gpu.max=1100000000
+extreme.gpu.min=500000000
 HC
 }
 
@@ -135,6 +158,22 @@ MISS=$(hc_all | while IFS== read k v; do case "$KEYS" in *"
 $k
 "*) ;; *) echo "$k=$v" ;; esac; done)
 [ -n "$MISS" ] && echo "$MISS" >> "$CONF"
+# v2.1: thermal indices now match the ROM's own list (verified from its Parts app)
+if ! grep -qE '^opt.migr=[23]$' "$CONF"; then
+  sed -i -e '/^thermal\./d' -e '/^opt\.migr=/d' -e 's/\.thermal=tgame$/.thermal=mgame/' "$CONF"
+  hc_all | grep '^thermal\.' >> "$CONF"
+  _ok=" normal huanji nolimits class0 arvr navigation video videochat camera 4k mgame highfps default "
+  while IFS== read -r k v; do
+    case "$k" in *.thermal) case "$_ok" in *" $v "*) ;; *) sed -i "s/^$k=.*/$k=normal/" "$CONF" ;; esac ;; esac
+  done < "$CONF"
+  echo "opt.migr=2" >> "$CONF"
+fi
+# v2.1: profile defaults + formulas now follow the ROM's own tuner (decoded from its daemon)
+if ! grep -q '^opt.migr=3$' "$CONF"; then
+  sed -i -E -e '/^(battery|normal|performance|extreme)\./d' -e '/^opt\.migr=/d' "$CONF"
+  hc_all | grep -E '^(battery|normal|performance|extreme)\.' >> "$CONF"
+  echo "opt.migr=3" >> "$CONF"
+fi
 
 log() { echo "$(date +%H:%M:%S) $*" >> "$LOG" 2>/dev/null; }
 # rd/wr use shell builtins (no cat/fork) -> fast
@@ -247,28 +286,34 @@ apply_cap() { # policy cap(kHz)
   wr "$d/scaling_max_freq" "$cap"
 }
 
-apply_prio() { # policy prio(0-3)
-  d=$CPUFREQ/$1; prio=$2
+apply_prio() { # policy prio(0-3) [min_cpus override]   (same table as the ROM daemon)
+  d=$CPUFREQ/$1; prio=$2; ovr=$3
   set -- $(rd "$d/related_cpus"); first=$1; n=$#
   cc=$SR/sys/devices/system/cpu/cpu$first/core_ctl
   [ -d "$cc" ] || { log "core_ctl missing for cpu$first"; return 1; }
   case "$prio" in
-    3) mn=$n ;;
-    2) mn=$(( (n * 3 + 3) / 4 )) ;;
-    1) mn=$(( (n + 1) / 2 )) ;;
-    *) mn=0 ;;
+    0) mn=0; mx=$(( n > 1 ? 1 : 0 )); busy=95 ;;
+    1) mn=0; mx=$(( (n > 2 ? n : 2) - 1 )); busy=80 ;;
+    2) mn=1; mx=$n; busy=70 ;;
+    *) mn=$n; mx=$n; busy=60 ;;
   esac
-  [ "$first" = 0 ] && [ "$mn" -lt 1 ] && mn=1
-  wr "$cc/max_cpus" "$n"
+  case "$ovr" in ''|*[!0-9]*) ;; *) mn=$ovr ;; esac
+  [ "$ROLE" = little ] && [ "$mn" -lt 1 ] && mn=1
+  [ "$mx" -lt "$mn" ] && mx=$mn
+  [ "$mn" -gt "$n" ] && mn=$n; [ "$mx" -gt "$n" ] && mx=$n
+  wr "$cc/max_cpus" "$mx"
   wr "$cc/min_cpus" "$mn"
+  wr "$cc/max_cpus" "$mx"
+  [ -e "$cc/busy_up_thres" ] && wr "$cc/busy_up_thres" "$busy"
 }
 
 apply_walt() { # policy role threshold   (rate limits + auto load shift)
   w=$CPUFREQ/$1/walt; t=$3
   [ -d "$w" ] || { log "walt tunables missing for $1"; return 1; }
-  wr "$w/up_rate_limit_us" $((t * 200))
-  wr "$w/down_rate_limit_us" $((2000 + t * 300))
-  wr "$w/target_load_shift" $((4 + t / 8))
+  wr "$w/up_rate_limit_us" $((t * 250))
+  wr "$w/down_rate_limit_us" $((2000 + t * 1000))
+  tl=$((4 + t / 5)); [ "$tl" -gt 10 ] && tl=10
+  wr "$w/target_load_shift" "$tl"
   wr "$w/rtg_boost_freq" "$( [ "$2" = little ] && echo 595200 || echo 0 )"
   wr "$w/pl" 0
 }
@@ -284,7 +329,7 @@ apply_gov() { # policy role hispeed_freq hispeed_load target_load_shift target_l
   hf=${3:-$df}; hl=${4:-$dl}
   case " $(rd "$CPUFREQ/$1/scaling_available_frequencies") " in *" $hf "*) wr "$w/hispeed_freq" "$hf" ;; esac
   wr "$w/hispeed_load" "$hl"
-  [ -n "$5" ] && wr "$w/target_load_shift" "$5"
+  if [ -n "$5" ]; then tl=$(( $5 + ${t:-0} / 5 )); [ "$tl" -gt 10 ] && tl=10; [ "$tl" -lt 0 ] && tl=0; wr "$w/target_load_shift" "$tl"; fi
   [ -n "$6" ] && wr "$w/target_load_thresh" "$6"
 }
 
@@ -321,13 +366,14 @@ apply_mode() { # mode
   : > "$DATA/expected"
   t=${M_threshold:-0}
   clusters | while read role pol; do
-    eval "cap=\$M_${role}_max; prio=\$M_${role}_prio; hsf=\$M_${role}_hsfreq; hsl=\$M_${role}_hsload; tls=\$M_${role}_tls; tlt=\$M_${role}_tlt"
+    eval "cap=\$M_${role}_max; prio=\$M_${role}_prio; hsf=\$M_${role}_hsfreq; hsl=\$M_${role}_hsload; tls=\$M_${role}_tls; tlt=\$M_${role}_tlt; minc=\$M_${role}_minc; rtg=\$M_${role}_rtg; bst=\$M_${role}_boost"
+    ROLE=$role
     if sec_on freq && [ -n "$cap" ]; then
       SEC=freq; apply_cap "$pol" "$cap" && echo "$pol=$cap" >> "$DATA/expected"
     fi
-    if sec_on priority && [ -n "$prio" ]; then SEC=priority; apply_prio "$pol" "$prio"; fi
+    if sec_on priority && [ -n "$prio" ]; then SEC=priority; apply_prio "$pol" "$prio" "$minc"; fi
     if sec_on threshold; then SEC=threshold; apply_walt "$pol" "$role" "$t"; fi
-    if sec_on gov; then SEC=gov; apply_gov "$pol" "$role" "$hsf" "$hsl" "$tls" "$tlt"; fi
+    if sec_on gov; then SEC=gov; apply_gov "$pol" "$role" "$hsf" "$hsl" "$tls" "$tlt"; [ -n "$rtg" ] && wr "$CPUFREQ/$pol/walt/rtg_boost_freq" "$rtg"; [ -n "$bst" ] && [ -e "$CPUFREQ/$pol/walt/boost" ] && wr "$CPUFREQ/$pol/walt/boost" "$bst"; fi
   done
   sec_on gov || restore_sec gov
   sec_on freq || restore_sec freq
@@ -343,10 +389,7 @@ apply_mode() { # mode
     if [ -n "$ix" ]; then wr "$SCONFIG" "$ix"
     elif [ -n "$M_thermal" ] && [ "$M_thermal" != default ]; then log "thermal '$M_thermal' has no sconfig index"; fi
   else restore_sec thermal; fi
-  tn=$(touch_node)
-  if [ -n "$tn" ]; then
-    if [ "$S_touch" = 1 ] || [ "$M_touch" = 1 ]; then SEC=touch; wr "$tn" 1; else restore_sec touch; fi
-  fi
+  restore_sec touch
   if sec_on cpuset && [ "$S_cpuset" = 1 ]; then SEC=cpuset; apply_cpuset; else restore_sec cpuset; fi
   SEC=
   echo "$m" > "$DATA/active"
@@ -382,7 +425,7 @@ do_backup() {
 do_restore() { # $1 = file (default: standard backup)
   f=${1:-$BK}
   [ -s "$f" ] || return 1
-  grep -E '^[a-z0-9._-]+=[a-z0-9._,-]*$' "$f" > "$DATA/restore.tmp" || return 1
+  grep -E '^[A-Za-z0-9._-]+=[A-Za-z0-9._,-]*$' "$f" > "$DATA/restore.tmp" || return 1
   a=$(grep -m1 '^active=' "$DATA/restore.tmp" | cut -d= -f2)
   grep -v '^active=' "$DATA/restore.tmp" > "$CONF"; rm -f "$DATA/restore.tmp"
   case " $MODES " in *" $a "*) echo "$a" > "$DATA/active" ;; esac
@@ -390,3 +433,5 @@ do_restore() { # $1 = file (default: standard backup)
   hc_all | while IFS== read k v; do grep -q "^$k=" "$CONF" || echo "$k=$v" >> "$CONF"; done
   return 0
 }
+
+. "$DIR/ptext.sh"

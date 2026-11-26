@@ -14,3 +14,11 @@ Both are built by GitHub Actions and published on the Releases page.
 Author: Zane
 
 - **`overlay/` → Fox Overlay (optional, separate module)**: custom thermal configs + the same `powerhint.json`. Use either its powerhint or the helper's, not both.
+
+## v2.1: Ulquiorra-style tuner
+- Profile engine now follows the ROM Parts daemon's own logic (decoded from `ulquiorrad`): rate limits `up = 250*T`, `down = 2000 + 1000*T`, load shift `base + T/5` (max 10), core_ctl priority table (0..3) with min/max/busy_up_thres, optional min-cores override, frequency boost, and the ROM's default Battery/Normal/Performance/Extreme values.
+- Kept from the old tuner: GPU, CpuSet and Governor sections (the governor load shift stacks on top of the threshold, no conflict).
+- Thermal list uses the ROM's real sconfig indexes (Normal 0, Huanji 1, No Limits 6, Class 0 7, AR/VR 9, Navigation 10, Video 11, Video Chat 14, Camera 15, 4K 16, Mobile Game 19, High FPS 26).
+- New Game page: per-app mode override, touch tuning (swipe continuity, jitter, sensitivity, tap accuracy, palm rejection or expert preset), super report rate, THP boost on 12 GB+ devices.
+- Touch test in More.
+- Works without the Ulq kernel.

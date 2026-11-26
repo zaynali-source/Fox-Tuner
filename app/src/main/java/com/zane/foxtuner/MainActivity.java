@@ -9,7 +9,14 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import org.json.JSONArray;
 import org.json.JSONObject;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -24,6 +31,13 @@ import java.util.regex.Pattern;
  */
 public class MainActivity extends Activity {
     private WebView web;
+    private static final Set<String> GAMES = new HashSet<>(java.util.Arrays.asList(
+        "com.wanmei.hotta.wm", "com.levelinfinite.dfm", "com.miHoYo.GenshinImpact", "com.miHoYo.Yuanshen",
+        "com.HoYoverse.hkrpgoversea", "com.miHoYo.hkrpg", "com.HoYoverse.Nap", "com.miHoYo.Nap",
+        "com.miHoYo.bh3oversea", "com.miHoYo.bh3global", "com.kurogame.wutheringwaves.global", "com.kurogame.kjw.kuro",
+        "com.kurogame.wutheringwaves.bilibili", "com.activision.callofduty.warzone", "com.carxtech.sr",
+        "com.levelinfinite.hotta.gp", "com.tencent.ig", "com.pubg.imobile", "com.activision.callofduty.shooter",
+        "com.mobile.legends", "com.dts.freefireth", "com.dts.freefiremax", "com.supercell.brawlstars"));
     private final ExecutorService pool = Executors.newSingleThreadExecutor();
     private static final Pattern CB = Pattern.compile("^[A-Za-z0-9_$]+$");
 
@@ -57,6 +71,27 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void setTileModes(String csv) { FoxTunerTileService.saveCsv(MainActivity.this, csv); }
+
+        @JavascriptInterface
+        public String apps() {
+            try {
+                PackageManager pm = getPackageManager();
+                Intent i = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
+                List<ResolveInfo> l = pm.queryIntentActivities(i, 0);
+                Set<String> seen = new HashSet<>();
+                JSONArray a = new JSONArray();
+                for (ResolveInfo r : l) {
+                    String p = r.activityInfo.packageName;
+                    if (!seen.add(p) || p.equals(getPackageName())) continue;
+                    JSONObject o = new JSONObject();
+                    o.put("p", p);
+                    o.put("l", String.valueOf(r.loadLabel(pm)));
+                    o.put("g", GAMES.contains(p) ? 1 : 0);
+                    a.put(o);
+                }
+                return a.toString();
+            } catch (Exception e) { return "[]"; }
+        }
 
         @JavascriptInterface
         public boolean app() { return true; }
