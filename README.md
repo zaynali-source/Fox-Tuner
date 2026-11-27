@@ -46,3 +46,6 @@ Author: Zane
 
 ## v2.9
 - Thermal list: TGame (sconfig 18). Kernel tab removed (v2.8).
+
+## v3.0
+- GameBar: native performance overlay (FPS via SurfaceFlinger layer latency, CPU/GPU/RAM/battery) drawn by the accessibility service; sampling only while visible. Configure on the Game page.

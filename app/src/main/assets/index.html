@@ -350,10 +350,46 @@ function loadApps(){ if(APPS) return Promise.resolve(); try{ APPS = JSON.parse(k
 const appName = p => ((APPS||[]).find(a=>a.p===p)||{}).l || p;
 const gv = (p,k,d) => S[`game.${p}.${k}`] ?? d;
 function gamePkgs(){ const o = []; Object.keys(S).forEach(k => { const m = k.match(/^game\.(.+)\.en$/); if(m) o.push(m[1]); }); return o.sort((a,b)=>appName(a).localeCompare(appName(b))); }
+/* ---------- GameBar ---------- */
+let GB = {};
+function gbLoad(){ try{ GB = JSON.parse(ksu.gbGet()); }catch(e){ GB = {}; } }
+const gbv = (k,d) => GB[k] ?? d;
+function gbSet(k,v){ GB[k] = String(v); try{ ksu.gbSet(k,String(v)); }catch(e){} }
+function gbSync(){ try{ ksu.gbSet('gw', S['game.master']==='1' ? '1' : '0'); ksu.gbSet('apps', gamePkgs().filter(p=>gv(p,'en','0')==='1').join(',')); }catch(e){} }
+function gbA11y(){ const need = gbv('on','0')==='1' || S['game.master']==='1'; return ctl('game-a11y', need ? '1' : '0'); }
+const GBPOS = [[0,'↖'],[1,'↑'],[2,'↗'],[3,'←'],[4,'•'],[5,'→'],[6,'↙'],[7,'↓'],[8,'↘']];
+const GBCOL = [['#FFFFFF','White'],['#4CAF50','Green'],['#00E5FF','Cyan'],['#FFC107','Amber'],['#FF5252','Red']];
+function gbHtml(){
+  gbLoad(); const on = gbv('on','0')==='1';
+  return `<section class="sec"><div class="hd"><span>GameBar</span><button class="sw${on?' on':''}" data-gb="on" aria-label="GameBar"></button></div>
+    <div class="row" style="background-image:none"><button class="g" id="gbOpen" style="text-align:left"><b>Performance overlay</b><small>${on ? 'On · '+(gbv('scope','always')==='games'?'only in Game Space games':'everywhere') : 'FPS, CPU, GPU, RAM and battery on screen'}</small></button></div>
+    ${on && gbv('svc','0')!=='1' ? '<div class="warn">Accessibility service is not running yet. Turn GameBar off and on again, or enable “Fox Tuner Game Space” in Accessibility settings.</div>' : ''}</section>`;
+}
+function gbSheet(){
+  gbLoad();
+  const c = (k,items,d) => chips(items, gbv(k,d), v=>`data-gbk="${k}" data-v="${v}"`).replace('class="chips"','class="chips" style="flex-wrap:wrap"');
+  const sw = (k,l,d) => `<div class="row"><span class="g"><b>${l}</b></span><button class="sw${gbv(k,d)==='1'?' on':''}" data-gbsw="${k}" data-def="${d}"></button></div>`;
+  sheet(`<h4>GameBar</h4><p>Floating stats. Sampling runs only while it is visible and the screen is on.</p><div class="list">
+    <div class="sub" style="margin-top:0">Show</div>${c('scope',[['always','Always'],['games','Game Space games']],'always')}
+    <div class="sub">Position</div>${c('pos',GBPOS,'0')}
+    <div class="sub">Text size</div>${c('size',[[9,'9'],[11,'11'],[13,'13'],[15,'15']],'11')}
+    <div class="sub">Background</div>${c('alpha',[[0,'None'],[30,'30%'],[60,'60%'],[85,'85%']],'60')}
+    <div class="sub">Text colour</div>${c('color',GBCOL,'#FFFFFF')}
+    <div class="sub">Refresh</div>${c('interval',[[500,'0.5 s'],[1000,'1 s'],[2000,'2 s'],[5000,'5 s']],'1000')}
+    <div class="sub">Metrics</div>${sw('fps','FPS','1')}${sw('cpu','CPU usage','1')}${sw('cpufreq','CPU clocks','1')}${sw('gpu','GPU','1')}${sw('ram','RAM','1')}${sw('bat','Battery temp','1')}${sw('temps','CPU / GPU temp','1')}
+    </div><div class="act"><button class="btn p" id="close">Done</button></div>`);
+}
+function gbClick(t){
+  if(t.dataset.gb){ const nv = gbv('on','0')==='1' ? '0' : '1'; gbSet('on',nv); gbSync(); run(()=>gbA11y()); setTimeout(()=>{ if(view==='game') render(); },1200); render(); toast(nv==='1'?'GameBar on':'GameBar off'); return true; }
+  if(t.id==='gbOpen'){ gbSheet(); return true; }
+  if(t.dataset.gbk){ gbSet(t.dataset.gbk,t.dataset.v); t.parentNode.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===t)); return true; }
+  if(t.dataset.gbsw){ const k = t.dataset.gbsw, nv = gbv(k,t.dataset.def)==='1' ? '0' : '1'; gbSet(k,nv); t.classList.toggle('on'); return true; }
+  return false;
+}
 function gameHtml(){
   const on = S['game.master']==='1', tf = S['hw.tf']==='1', cur = S['game.on'];
   const list = gamePkgs();
-  return `<section class="sec"><div class="hd"><span>Game Space</span><button class="sw${on?' on':''}" data-gmaster="1" aria-label="Game Space"></button></div>
+  return gbHtml() + `<section class="sec"><div class="hd"><span>Game Space</span><button class="sw${on?' on':''}" data-gmaster="1" aria-label="Game Space"></button></div>
     <div class="row" style="background-image:none"><span class="g"><b>${cur ? 'In game: '+appName(cur) : (on ? 'Waiting for a game' : 'Off')}</b><small>Per-app touch tuning, performance mode and memory boost while the app is in front</small></span></div>
     ${tf ? '' : '<div class="warn">touch_filters not found on this kernel: touch tuning will be skipped, mode override still works.</div>'}</section>
     <section class="sec"><div class="hd"><span>Games</span><button class="lnk" id="gAdd">Add</button></div>
@@ -423,8 +459,9 @@ $('app').addEventListener('click', e => {
     return;
   }
   if(view==='game'){
-    if(t.dataset.gmaster){ const nv = S['game.master']==='1' ? '0' : '1'; S['game.master'] = nv; render(); run(()=>ctl('set','game.master',nv).then(()=>ctl('game-a11y',nv))); toast(nv==='1'?'Game Space on':'Game Space off'); return; }
-    if(t.dataset.gen){ const p = t.dataset.gen, nv = gv(p,'en','0')==='1' ? '0' : '1'; S[`game.${p}.en`] = nv; render(); run(()=>ctl('set',`game.${p}.en`,nv)); return; }
+    if(gbClick(t)) return;
+    if(t.dataset.gmaster){ const nv = S['game.master']==='1' ? '0' : '1'; S['game.master'] = nv; gbSync(); render(); run(()=>ctl('set','game.master',nv).then(()=>gbA11y())); toast(nv==='1'?'Game Space on':'Game Space off'); return; }
+    if(t.dataset.gen){ const p = t.dataset.gen, nv = gv(p,'en','0')==='1' ? '0' : '1'; S[`game.${p}.en`] = nv; gbSync(); render(); run(()=>ctl('set',`game.${p}.en`,nv)); return; }
     if(t.dataset.gopen){ gameSheet(t.dataset.gopen); return; }
     if(t.id==='gAdd'){ addSheet(); return; }
     return;
@@ -461,6 +498,7 @@ $('sheet').addEventListener('click', e => {
   if(pk){ setKey(pk.dataset.pick, pk.dataset.v); closeSheet(); render(); return; }
   const b = e.target.closest('button');
   if(b){
+    if(gbClick(b)) return;
     if(b.id==='dKeep'){ clearInterval(dispTimer); dispLock = false; closeSheet(); exec(`D=${DIR}; mkdir -p "$D"; : > "$D/disp_keep"`); toast('Kept'); return; }
     if(b.id==='dRev'){ clearInterval(dispTimer); dispLock = false; closeSheet(); exec(`D=${DIR}; sh "$D/disp_revert.sh"; : > "$D/disp_keep"`).then(async()=>{ await new Promise(r=>setTimeout(r,600)); await loadDisp(); render(); }); return; }
     if(b.id==='close'){ closeSheet(); if(view==='game') render(); return; }
@@ -478,7 +516,7 @@ $('sheet').addEventListener('click', e => {
 });
 render();
 (async () => {
-  const ok = await load(); failed = !ok; await binfo(); render();
+  const ok = await load(); failed = !ok; await binfo(); gbSync(); render();
   document.addEventListener('visibilitychange', async () => { if(!document.hidden && !pend.size){ await chain; if(await load()) render(); } });
 })();
 </script>
