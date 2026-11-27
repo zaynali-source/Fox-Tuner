@@ -40,3 +40,6 @@ Author: Zane
 
 ## v2.7
 - Game Space now uses an app accessibility service (event-driven, no polling) to detect the foreground game; the helper daemon steps aside while it is active. Root enables the service automatically.
+
+## v2.8
+- Profile tuning now opens from the 3-line icon on a profile (with a back button); the separate Kernel tab is removed. UI polish.

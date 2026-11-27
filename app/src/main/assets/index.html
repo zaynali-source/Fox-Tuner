@@ -95,13 +95,14 @@ body{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
 #nav button{height:46px;border-radius:24px;color:var(--m);font-size:13px;transition:background .15s,color .15s}
 #nav button.on{background:var(--a);color:var(--at);font-weight:600}
 .ban{background:#2a1513;color:var(--w);padding:14px;border-radius:22px;margin:8px 0;font-size:13px}
+.bk{display:flex;align-items:center;gap:12px;margin:2px 0 14px;position:sticky;top:0;z-index:5;padding:8px 0;background:var(--bg,#0b0b0d)}.bk button{width:40px;height:40px;border-radius:14px;border:0;font-size:28px;line-height:1;background:rgba(255,255,255,.08);color:inherit}.bk b{display:block;font-size:17px}.bk small{opacity:.6}.tile{transition:transform .12s,box-shadow .2s}.tile:active{transform:scale(.97)}.sec{border-radius:18px}
 </style>
 </head>
 <body>
 <div class="top"><h1>Fox Tuner</h1><i class="dot" id="dot"></i><button class="sw" id="master" aria-label="Apply profiles"></button></div>
 <div id="ban"></div>
 <main id="app" class="f"></main>
-<nav id="nav"><button class="on" data-view="prof">Profiles</button><button data-view="kern">Kernel</button><button data-view="game">Game</button><button data-view="more">More</button></nav>
+<nav id="nav"><button class="on" data-view="prof">Profiles</button><button data-view="game">Game</button><button data-view="more">More</button></nav>
 <div class="scrim" id="scrim"><div class="sheet" id="sheet"></div></div>
 <div class="toast" id="toast"></div>
 
@@ -304,7 +305,7 @@ function render(){
     <section class="sec"><div class="hd"><span>Device</span></div><div class="row" style="background-image:none"><span class="g"><b>${S['hw.model']||''} ${S['hw.device']||''}</b><small>${R.map(r=>CL.find(c=>c[0]===r)[1]+' '+ghz(S[`${m}.${r}.max`]||0)).join(' · ')}</small></span></div></section>
     <section class="sec"><div class="hd"><span>System status</span></div><div class="tags" style="padding-top:0">${tag(true,'CPU caps')}${tag(R.every(r=>S[`hw.${r}.corectl`]==='1'),'Priority')}${tag(R.some(r=>S[`hw.${r}.walt`]==='1'),'Governor')}${tag(gOk,'GPU')}${tag(S['hw.cs']==='1','Cpuset')}${tag(S['hw.sconfig']==='1','Thermal')}${tag(S['hw.touch']==='1','Touch')}</div></section>`;
   const keepOpen = document.querySelector('details')?.open;
-  const vt = '';
+  const vt = view==='kern' ? `<div class="bk"><button id="back" aria-label="Back">&#8249;</button><div><b>${(MODES.find(x=>x[0]===m)||[0,m])[1]} tuning</b><small>Profile configuration</small></div></div>` : '';
   $('app').innerHTML = vt + (view==='disp' ? dispHtml() : view==='game' ? gameHtml() : view==='more' ? more : view==='kern' ? body : prof);
   if(keepOpen) document.querySelector('details').open = true;
 }
@@ -392,7 +393,7 @@ function touchSheet(){
 
 /* ---------- events (delegated) ---------- */
 function setView(v){
-  view = v; document.querySelectorAll('#nav button').forEach(x => x.classList.toggle('on', x.dataset.view===v));
+  view = v; document.querySelectorAll('#nav button').forEach(x => x.classList.toggle('on', x.dataset.view===(v==='kern'?'prof':v)));
   const a = $('app'); a.classList.remove('f'); void a.offsetWidth; a.classList.add('f');
   window.scrollTo(0,0); render(); if(v==='disp') loadDisp().then(render); if(v==='game') loadApps().then(render);
 }
@@ -410,6 +411,7 @@ $('app').addEventListener('click', e => {
     try{ ksu.setTileModes(TM.join(',')); }catch(e){}
     t.classList.toggle('on'); return;
   }
+  if(t.id==='back'){ haptic(); setView('prof'); return; }
   if(t.dataset.view){ view = t.dataset.view; if(view==='disp'){ render(); loadDisp().then(render); } else render(); return; }
   if(view==='disp'){
     const num = id => { const v = parseInt(document.getElementById(id)?.value,10); return v; };
