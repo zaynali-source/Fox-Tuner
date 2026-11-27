@@ -43,3 +43,6 @@ Author: Zane
 
 ## v2.8
 - Profile tuning now opens from the 3-line icon on a profile (with a back button); the separate Kernel tab is removed. UI polish.
+
+## v2.9
+- Thermal list: TGame (sconfig 18). Kernel tab removed (v2.8).

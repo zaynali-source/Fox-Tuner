@@ -42,6 +42,7 @@ thermal.camera=15
 thermal.4k=16
 thermal.mgame=19
 thermal.highfps=26
+thermal.tgame18=18
 game.master=0
 cs.background=0
 cs.camera-daemon=0,1,2,3,4,5,7
@@ -162,7 +163,7 @@ $k
 if ! grep -qE '^opt.migr=[234]$' "$CONF"; then
   sed -i -e '/^thermal\./d' -e '/^opt\.migr=/d' -e 's/\.thermal=tgame$/.thermal=mgame/' "$CONF"
   hc_all | grep '^thermal\.' >> "$CONF"
-  _ok=" normal huanji nolimits class0 arvr navigation video videochat camera 4k mgame highfps default "
+  _ok=" normal huanji nolimits class0 arvr navigation video videochat camera 4k mgame highfps tgame18 default "
   while IFS== read -r k v; do
     case "$k" in *.thermal) case "$_ok" in *" $v "*) ;; *) sed -i "s/^$k=.*/$k=normal/" "$CONF" ;; esac ;; esac
   done < "$CONF"
@@ -353,7 +354,7 @@ apply_gpu() { # max(Hz) min(Hz)
   [ -e "$k/max_gpuclk" ] && wr "$k/max_gpuclk" "$gmax"
 }
 
-thermal_idx() { [ "$1" = default ] || cget "thermal.$1"; }
+thermal_idx() { [ "$1" = default ] && return; case "$1" in tgame18) echo 18 ;; *) cget "thermal.$1" ;; esac; }
 
 fox_overlay_active() { m=${PT_MODS:-/data/adb/modules}/fox_overlay; [ -d "$m" ] && [ ! -e "$m/disable" ] && [ ! -e "$m/remove" ]; }
 
