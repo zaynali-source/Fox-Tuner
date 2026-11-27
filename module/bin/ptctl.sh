@@ -72,7 +72,7 @@ boot)
   # called by the helper at boot: apply once, start the watcher only if enabled
   rm -f "$DATA/disabled"
   [ "$(opt enabled 1)" = 0 ] && { : > "$DATA/disabled"; exit 0; }
-  rm -f "$DATA/game_prev" "$DATA/game_active"
+  rm -f "$DATA/game_prev" "$DATA/game_active" "$DATA/game_evt" "$DATA/thp_off"
   takeover; apply_mode "$(active_mode)" >/dev/null
   daemon_sync
   echo ok ;;
@@ -114,6 +114,36 @@ touch-hz)
   [ -n "$dev" ] || { echo "na"; exit 0; }
   n=$(timeout 2 getevent -l "$dev" 2>/dev/null | grep -c SYN_REPORT)
   echo $((n / 2)) ;;
+game-a11y)
+  # game-a11y 1|0 : enable/disable the app's Game Space accessibility service (root, no user trip to Settings)
+  svc=com.zane.foxtuner/com.zane.foxtuner.GameWatchService
+  cur=$(settings get secure enabled_accessibility_services 2>/dev/null); [ "$cur" = null ] && cur=
+  new=$(echo "$cur" | tr ':' '\n' | grep -v "^$svc\$" | grep -v '^$' | paste -sd: -)
+  if [ "$1" = 1 ]; then new="${new:+$new:}$svc"; fi
+  [ "$new" = "$cur" ] || settings put secure enabled_accessibility_services "${new:-null}" 2>/dev/null
+  [ "$1" = 1 ] && settings put secure accessibility_enabled 1 2>/dev/null
+  echo ok ;;
+game-evt)
+  # game-evt 0|1 : the app's accessibility service tells us it is (not) delivering foreground events
+  if [ "$1" = 1 ]; then : > "$DATA/game_evt"; else rm -f "$DATA/game_evt"; fi
+  daemon_sync; echo ok ;;
+game-fg)
+  # game-fg <pkg> : event-driven foreground notification from the app (no polling)
+  ok_key "$1" || { echo "bad args"; exit 1; }
+  [ -f "$DATA/disabled" ] && exit 0
+  game_build
+  cur=$(cat "$DATA/game_active" 2>/dev/null)
+  if [ "$(cget game.master)" = 1 ] && case "|$GAME_ALT|" in *"|$1|"*) true ;; *) false ;; esac; then
+    [ "$1" = "$cur" ] || game_apply "$1"
+    if thp_capable && is_default_game "$1"; then thp_set always; rm -f "$DATA/thp_off"; fi
+  else
+    [ -n "$cur" ] && game_revoke
+    if thp_capable && [ "$(cat "$THP" 2>/dev/null | grep -o '\[[a-z]*\]')" = "[always]" ] && [ ! -f "$DATA/thp_off" ]; then
+      : > "$DATA/thp_off"
+      (sleep 60; [ -s "$DATA/game_active" ] || thp_set madvise; rm -f "$DATA/thp_off") >/dev/null 2>&1 &
+    fi
+  fi
+  echo ok ;;
 game-sync)
   daemon_sync; echo ok ;;
 game-remove)

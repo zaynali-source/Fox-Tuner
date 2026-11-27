@@ -85,7 +85,7 @@ is_default_game() { case " $GAMEPKGS " in *" $1 "*) return 0 ;; esac; return 1; 
 # ---- background daemon is needed when any of these is on ----------------------------
 want_daemon() {
   [ "$(cget opt.watch)" = 1 ] && return 0
-  [ "$(cget game.master)" = 1 ] && return 0
+  [ "$(cget game.master)" = 1 ] && [ ! -f "$DATA/game_evt" ] && return 0
   return 1
 }
 daemon_up() { [ -f "$DATA/ptd.pid" ] && kill -0 "$(cat "$DATA/ptd.pid")" 2>/dev/null; }

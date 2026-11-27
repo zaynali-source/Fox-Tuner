@@ -37,3 +37,6 @@ Author: Zane
 - Per-profile touch sampling is a plain Default/Boosted value written (and verified) on every profile apply. No background timer.
 - Touch test reads the real MotionEvent sample rate (including batched history) instead of the frame-limited pointer events.
 - Greyed-out conflicts refresh immediately when Priority / Max frequency / Governor values change.
+
+## v2.7
+- Game Space now uses an app accessibility service (event-driven, no polling) to detect the foreground game; the helper daemon steps aside while it is active. Root enables the service automatically.

@@ -35,7 +35,7 @@ while :; do
   fi
   want_daemon || { log "daemon idle, exiting"; cleanup; }
   [ -f "$DATA/disabled" ] && continue
-  if [ "$GM" = 1 ]; then
+  if [ "$GM" = 1 ] && [ ! -f "$DATA/game_evt" ]; then
     g=$(fg_game)
     if [ -n "$g" ] && [ "$g" != "$CUR" ]; then CUR=$g; game_apply "$g"
     elif [ -z "$g" ] && [ -n "$CUR" ]; then CUR=; game_revoke

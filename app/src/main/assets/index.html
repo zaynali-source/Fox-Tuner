@@ -421,7 +421,7 @@ $('app').addEventListener('click', e => {
     return;
   }
   if(view==='game'){
-    if(t.dataset.gmaster){ const nv = S['game.master']==='1' ? '0' : '1'; S['game.master'] = nv; render(); run(()=>ctl('set','game.master',nv)); toast(nv==='1'?'Game Space on':'Game Space off'); return; }
+    if(t.dataset.gmaster){ const nv = S['game.master']==='1' ? '0' : '1'; S['game.master'] = nv; render(); run(()=>ctl('set','game.master',nv).then(()=>ctl('game-a11y',nv))); toast(nv==='1'?'Game Space on':'Game Space off'); return; }
     if(t.dataset.gen){ const p = t.dataset.gen, nv = gv(p,'en','0')==='1' ? '0' : '1'; S[`game.${p}.en`] = nv; render(); run(()=>ctl('set',`game.${p}.en`,nv)); return; }
     if(t.dataset.gopen){ gameSheet(t.dataset.gopen); return; }
     if(t.id==='gAdd'){ addSheet(); return; }
