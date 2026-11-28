@@ -10,14 +10,26 @@ android {
         applicationId 'com.zane.foxtuner'
         minSdk 26
         targetSdk 34
-        versionCode 31
-        versionName '3.4'
+        versionCode 32
+        versionName '3.5'
+    }
+
+    signingConfigs {
+        fixed {   // same key on every build so updates install over the old app
+            storeFile file('foxtuner.jks')
+            storePassword 'foxtuner'
+            keyAlias 'foxtuner'
+            keyPassword 'foxtuner'
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig signingConfigs.fixed
+        }
         release {
             minifyEnabled false
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.fixed
         }
     }
 

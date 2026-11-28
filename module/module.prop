@@ -1,6 +1,6 @@
 id=profiles_tuner
 name=Fox Tuner Helper
-version=v3.4
-versionCode=31
+version=v3.5
+versionCode=32
 author=Zane
 description=Helper for the Fox Tuner app: applies the app's settings at boot. Also overlays the PowerHAL powerhint.json (POCO F6 peridot, libperfmgr). No UI here, open the Fox Tuner app.

@@ -58,3 +58,6 @@ Author: Zane
 
 ## v3.4
 - Touch sampling and THP on/off switches are now per profile.
+
+## v3.5
+- APK is now signed with a fixed key so updates install over the old version (uninstall once when moving from 3.4 or older).
