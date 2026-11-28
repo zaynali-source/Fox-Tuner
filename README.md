@@ -61,3 +61,6 @@ Author: Zane
 
 ## v3.5
 - APK is now signed with a fixed key so updates install over the old version (uninstall once when moving from 3.4 or older).
+
+## v4.0
+- App rewritten as a native Android UI (no WebView). Root work stays in the helper module.
