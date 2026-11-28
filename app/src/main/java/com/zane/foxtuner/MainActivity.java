@@ -117,25 +117,6 @@ public class MainActivity extends Activity {
         public boolean app() { return true; }
 
         @JavascriptInterface
-        public String gbGet() {
-            try {
-                org.json.JSONObject o = new org.json.JSONObject();
-                for (java.util.Map.Entry<String, ?> e : getSharedPreferences(GameBarOverlay.PREFS, MODE_PRIVATE).getAll().entrySet()) o.put(e.getKey(), String.valueOf(e.getValue()));
-                o.put("svc", GameWatchService.running() ? "1" : "0");
-                return o.toString();
-            } catch (Throwable t) { return "{}"; }
-        }
-
-        @JavascriptInterface
-        public void gbSet(String k, String v) {
-            if (k == null || !k.matches("[a-z]{1,12}")) return;
-            String old = getSharedPreferences(GameBarOverlay.PREFS, MODE_PRIVATE).getString(k, null);
-            if (v != null && v.equals(old)) return;
-            getSharedPreferences(GameBarOverlay.PREFS, MODE_PRIVATE).edit().putString(k, v).apply();
-            GameWatchService.poke();
-        }
-
-        @JavascriptInterface
         public void exec(final String cmd, String opts, final String cb) {
             if (cb == null || !CB.matcher(cb).matches()) return;
             pool.execute(() -> {
