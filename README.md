@@ -55,3 +55,6 @@ Author: Zane
 
 ## v3.3
 - Per-profile THP (Default madvise / Boost always), written once per profile apply. Fixed migrations re-running and resetting profile values.
+
+## v3.4
+- Touch sampling and THP on/off switches are now per profile.

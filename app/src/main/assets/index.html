@@ -194,8 +194,9 @@ function chipsAll(items,key,kind){
 }
 function winHs(r){ const l = freqs(r), d = {little:1113600,big:1190400,prime:1459200}[r]||0; let i = l.indexOf(d); if(i<0) i = Math.floor(l.length/2); const st = Math.max(0,Math.min(i-1,l.length-4)); return l.slice(st,st+4).map(f=>[f,ghz(f)]); }
 const FOLD = new Set(['gpu','cpuset','gov']); let OPEN = new Set();
+const secKey = k => (k==='touch'||k==='thp') ? `${S.active}.sec_${k}` : `sec.${k}`;   // touch and THP switch per profile
 function section(key,title,inner,extraHd=''){
-  const on = S[`sec.${key}`] !== '0', f = FOLD.has(key);
+  const on = S[secKey(key)] !== '0', f = FOLD.has(key);
   const ttl = f ? `<button class="ft" data-fold="${key}" aria-label="Expand ${title}"><span>${title}</span><i class="chev"></i></button>` : `<span>${title}</span>`;
   return `<section class="sec${on?'':' off'}${f?' fold'+(OPEN.has(key)?' open':''):''}"><div class="hd">${ttl}<span style="display:flex;gap:12px;align-items:center;text-transform:none;letter-spacing:0">${extraHd}<button class="sw${on?' on':''}" data-sec="${key}" aria-label="${title}"></button></span></div><div class="body">${f && !OPEN.has(key) ? '' : inner}</div></section>`;
 }
@@ -437,7 +438,7 @@ $('app').addEventListener('click', e => {
   if(t.dataset.cluster){ cluster = t.dataset.cluster; render(); return; }
   if(t.dataset.all){ allSheet(t.dataset.all,t.dataset.kind); return; }
   if(t.dataset.k){ setKey(t.dataset.k,t.dataset.v); patch(t.dataset.k); if(REFLOW.test(t.dataset.k)) render(); return; }
-  if(t.dataset.sec){ const k = t.dataset.sec, cur = k==='touch' ? S['sec.touch']==='1' : S[`sec.${k}`]!=='0'; setKey(`sec.${k}`, cur?'0':'1'); t.classList.toggle('on',!cur); const sc = t.closest('.sec'); if(sc) sc.classList.toggle('off',cur); if(k==='priority'||k==='freq'||k==='threshold') render(); return; }
+  if(t.dataset.sec){ const k = t.dataset.sec, cur = S[secKey(k)]!=='0'; setKey(secKey(k), cur?'0':'1'); t.classList.toggle('on',!cur); const sc = t.closest('.sec'); if(sc) sc.classList.toggle('off',cur); if(k==='priority'||k==='freq'||k==='threshold') render(); return; }
   if(t.dataset.cs){
     const g = t.dataset.cs, i = +t.dataset.cpu; let sel = csSel(g);
     sel = sel.includes(i) ? sel.filter(x=>x!==i) : [...sel,i].sort((a,b)=>a-b);

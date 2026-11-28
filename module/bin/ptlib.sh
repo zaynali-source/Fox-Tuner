@@ -416,11 +416,11 @@ apply_mode() { # mode
     elif [ -n "$M_thermal" ] && [ "$M_thermal" != default ]; then log "thermal '$M_thermal' has no sconfig index"; fi
   else restore_sec thermal; fi
   tn=$(touch_node)
-  if [ -n "$tn" ] && sec_on touch; then
+  if [ -n "$tn" ] && [ "${M_sec_touch:-1}" != 0 ]; then
     SEC=touch; tv=${M_touch:-0}; echo "$tv" > "$DATA/touch_want"
     wr "$tn" "$tv"; [ "$(rd "$tn")" = "$tv" ] || { sleep 1; echo "$tv" > "$tn" 2>/dev/null; }
   else rm -f "$DATA/touch_want"; fi
-  if sec_on thp && [ -w "$THP" ]; then   # one write per profile switch, only if it differs (no polling)
+  if [ "${M_sec_thp:-1}" != 0 ] && [ -w "$THP" ]; then   # one write per profile switch, only if it differs (no polling)
     want=madvise; [ "${M_thp:-0}" = 1 ] && want=always
     case "$(cat "$THP" 2>/dev/null)" in *"[$want]"*) ;; *) echo "$want" > "$THP" 2>/dev/null ;; esac
   fi
