@@ -28,6 +28,7 @@ sec.freq=1
 sec.gpu=1
 sec.thermal=1
 sec.touch=1
+sec.thp=1
 sec.gov=1
 sec.cpuset=0
 thermal.normal=0
@@ -54,6 +55,7 @@ cs.system-background=0,1
 cs.top-app=0,1,2,3,4,5,6,7
 battery.threshold=6
 battery.touch=0
+battery.thp=0
 battery.thermal=normal
 battery.little.prio=3
 battery.little.max=1478400
@@ -77,6 +79,7 @@ battery.gpu.max=500000000
 battery.gpu.min=255000000
 normal.threshold=6
 normal.touch=0
+normal.thp=0
 normal.thermal=normal
 normal.little.prio=3
 normal.little.max=2016000
@@ -102,6 +105,7 @@ normal.gpu.max=835000000
 normal.gpu.min=255000000
 performance.threshold=3
 performance.touch=1
+performance.thp=1
 performance.thermal=nolimits
 performance.little.prio=2
 performance.little.max=2016000
@@ -125,6 +129,7 @@ performance.gpu.max=900000000
 performance.gpu.min=353000000
 extreme.threshold=0
 extreme.touch=1
+extreme.thp=1
 extreme.thermal=nolimits
 extreme.little.prio=3
 extreme.little.max=2016000
@@ -159,27 +164,25 @@ MISS=$(hc_all | while IFS== read k v; do case "$KEYS" in *"
 $k
 "*) ;; *) echo "$k=$v" ;; esac; done)
 [ -n "$MISS" ] && echo "$MISS" >> "$CONF"
-# v2.1: thermal indices now match the ROM's own list (verified from its Parts app)
-if ! grep -qE '^opt.migr=[234]$' "$CONF"; then
-  sed -i -e '/^thermal\./d' -e '/^opt\.migr=/d' -e 's/\.thermal=tgame$/.thermal=mgame/' "$CONF"
+# migrations run once each, by level (opt.migr = highest level done)
+MG=$(sed -n 's/^opt\.migr=//p' "$CONF" | tail -1); case "$MG" in ''|*[!0-9]*) MG=0 ;; esac
+if [ "$MG" -lt 2 ]; then   # thermal indices follow the ROM's own list
+  sed -i -e '/^thermal\./d' -e 's/\.thermal=tgame$/.thermal=mgame/' "$CONF"
   hc_all | grep '^thermal\.' >> "$CONF"
   _ok=" normal huanji nolimits class0 arvr navigation video videochat camera 4k mgame highfps tgame18 default "
   while IFS== read -r k v; do
     case "$k" in *.thermal) case "$_ok" in *" $v "*) ;; *) sed -i "s/^$k=.*/$k=normal/" "$CONF" ;; esac ;; esac
   done < "$CONF"
-  echo "opt.migr=2" >> "$CONF"
 fi
-# v2.1: profile defaults + formulas now follow the ROM's own tuner (decoded from its daemon)
-if ! grep -q '^opt.migr=3$' "$CONF"; then
-  sed -i -E -e '/^(battery|normal|performance|extreme)\./d' -e '/^opt\.migr=/d' "$CONF"
+if [ "$MG" -lt 3 ]; then   # profile defaults follow the ROM's own tuner
+  sed -i -E '/^(battery|normal|performance|extreme)\./d' "$CONF"
   hc_all | grep -E '^(battery|normal|performance|extreme)\.' >> "$CONF"
-  echo "opt.migr=3" >> "$CONF"
 fi
-if ! grep -q '^opt.migr=4$' "$CONF"; then   # per-profile touch sampling is a plain Default/Boosted choice again
-  sed -i -E -e '/^sec\.touch=/d' -e '/^(battery|normal|performance|extreme)\.touch=/d' -e '/^opt\.migr=/d' "$CONF"
+if [ "$MG" -lt 4 ]; then   # per-profile touch sampling is a plain Default/Boosted choice
+  sed -i -E -e '/^sec\.touch=/d' -e '/^(battery|normal|performance|extreme)\.touch=/d' "$CONF"
   hc_all | grep -E '^(sec\.touch|(battery|normal|performance|extreme)\.touch)=' >> "$CONF"
-  echo "opt.migr=4" >> "$CONF"
 fi
+if [ "$MG" -lt 5 ]; then sed -i '/^opt\.migr=/d' "$CONF"; echo "opt.migr=5" >> "$CONF"; fi
 
 log() { echo "$(date +%H:%M:%S) $*" >> "$LOG" 2>/dev/null; }
 # rd/wr use shell builtins (no cat/fork) -> fast
@@ -417,6 +420,10 @@ apply_mode() { # mode
     SEC=touch; tv=${M_touch:-0}; echo "$tv" > "$DATA/touch_want"
     wr "$tn" "$tv"; [ "$(rd "$tn")" = "$tv" ] || { sleep 1; echo "$tv" > "$tn" 2>/dev/null; }
   else rm -f "$DATA/touch_want"; fi
+  if sec_on thp && [ -w "$THP" ]; then   # one write per profile switch, only if it differs (no polling)
+    want=madvise; [ "${M_thp:-0}" = 1 ] && want=always
+    case "$(cat "$THP" 2>/dev/null)" in *"[$want]"*) ;; *) echo "$want" > "$THP" 2>/dev/null ;; esac
+  fi
   if sec_on cpuset && [ "$S_cpuset" = 1 ]; then SEC=cpuset; apply_cpuset; else restore_sec cpuset; fi
   SEC=
   echo "$m" > "$DATA/active"

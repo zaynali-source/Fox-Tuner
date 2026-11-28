@@ -52,3 +52,6 @@ Author: Zane
 
 ## v3.2
 - Game Space and its accessibility service removed; boot undoes anything it left (touch, THP).
+
+## v3.3
+- Per-profile THP (Default madvise / Boost always), written once per profile apply. Fixed migrations re-running and resetting profile values.
