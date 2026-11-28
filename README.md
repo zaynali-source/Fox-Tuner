@@ -49,3 +49,6 @@ Author: Zane
 
 ## v3.1
 - GameBar removed (power drain). Bottom nav now has icons.
+
+## v3.2
+- Game Space and its accessibility service removed; boot undoes anything it left (touch, THP).

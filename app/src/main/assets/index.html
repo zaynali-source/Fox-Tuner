@@ -91,7 +91,7 @@ details[open] summary{padding-bottom:6px}
 .chip,.seg button,.cpu,.btn,.tabs button{transition:transform .08s,background .12s,color .12s}
 .chip:active,.seg button:active,.cpu:active,.btn:active,.tabs button:active{transform:scale(.95);opacity:1}
 body{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
-#nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));width:min(360px,calc(100% - 32px));display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:5px;border-radius:32px;background:rgba(22,22,22,.9);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid #2a2a2a;z-index:5}
+#nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));width:min(360px,calc(100% - 32px));display:grid;grid-template-columns:repeat(2,1fr);gap:4px;padding:5px;border-radius:32px;background:rgba(22,22,22,.9);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid #2a2a2a;z-index:5}
 #nav button{height:58px;border-radius:26px;color:var(--m);font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:background .15s,color .15s}#nav svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}#nav svg circle{fill:currentColor;stroke:none}
 #nav button.on{background:var(--a);color:var(--at);font-weight:600}
 .ban{background:#2a1513;color:var(--w);padding:14px;border-radius:22px;margin:8px 0;font-size:13px}
@@ -102,7 +102,7 @@ body{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
 <div class="top"><h1>Fox Tuner</h1><i class="dot" id="dot"></i><button class="sw" id="master" aria-label="Apply profiles"></button></div>
 <div id="ban"></div>
 <main id="app" class="f"></main>
-<nav id="nav"><button class="on" data-view="prof"><svg viewBox="0 0 24 24"><path d="M12 14l4-5"/><path d="M4.5 18a9 9 0 1115 0"/></svg><span>Profiles</span></button><button data-view="game"><svg viewBox="0 0 24 24"><rect x="2.5" y="7" width="19" height="11" rx="5"/><path d="M8 10v5M5.5 12.5h5"/><circle cx="16" cy="11.5" r=".8"/><circle cx="18" cy="13.5" r=".8"/></svg><span>Game</span></button><button data-view="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg><span>More</span></button></nav>
+<nav id="nav"><button class="on" data-view="prof"><svg viewBox="0 0 24 24"><path d="M12 14l4-5"/><path d="M4.5 18a9 9 0 1115 0"/></svg><span>Profiles</span></button><button data-view="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg><span>More</span></button></nav>
 <div class="scrim" id="scrim"><div class="sheet" id="sheet"></div></div>
 <div class="toast" id="toast"></div>
 

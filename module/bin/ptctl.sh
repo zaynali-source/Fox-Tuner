@@ -72,6 +72,9 @@ boot)
   # called by the helper at boot: apply once, start the watcher only if enabled
   rm -f "$DATA/disabled"
   [ "$(opt enabled 1)" = 0 ] && { : > "$DATA/disabled"; exit 0; }
+  # Game Space is retired: switch it off and undo anything it left behind
+  cset game.master 0; touch_commit 0 >/dev/null 2>&1; thp_set madvise
+  sh "$0" game-a11y 0 >/dev/null 2>&1
   rm -f "$DATA/game_prev" "$DATA/game_active" "$DATA/game_evt" "$DATA/thp_off"
   takeover; apply_mode "$(active_mode)" >/dev/null
   daemon_sync
